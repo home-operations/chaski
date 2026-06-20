@@ -1,0 +1,229 @@
+# Default values for chaski.
+#
+# chaski is a stateless webhook relay. Its routes + targets come from a config
+# file (this chart renders one into a ConfigMap from `config.routes`/`config.targets`,
+# or mounts `config.existingConfigMap`); secrets (the inbound token, provider
+# credentials) come from the environment, sourced from a Secret.
+#
+# Most strings, lists, and maps below are rendered through Helm's `tpl`, so you
+# can reference release values (e.g. `{{ .Release.Name }}`) inside them. The
+# route/target config (`config.routes`/`config.targets`) is the deliberate
+# exception — it is emitted verbatim, because its `{{ ... }}` is chaski's own CEL
+# and Go-template syntax, not Helm's.
+
+image:
+  # -- Image repository.
+  repository: ghcr.io/home-operations/chaski
+  # -- Overrides the image tag; defaults to the chart appVersion.
+  tag: ""
+  # -- Pin the image by digest (sha256:…); set by the release pipeline. When set, it overrides the tag.
+  digest: ""
+  # -- Image pull policy.
+  pullPolicy: IfNotPresent
+
+# -- Image pull secrets for private registries.
+imagePullSecrets: []
+
+# -- Override the chart name used in the `app.kubernetes.io/name` label.
+nameOverride: ""
+# -- Override the generated name used for every resource's `metadata.name` (the chart "fullname").
+fullnameOverride: ""
+
+# -- Number of replicas. chaski is stateless, so >1 is just more capacity/HA.
+replicaCount: 1
+
+# The relay's configuration. Ops/secret settings become CHASKI_* env vars; the
+# routes + targets become a config file mounted at `config.mountPath`.
+config:
+  # -- Webhook receiver port (CHASKI_PORT); also the container/Service http port.
+  port: 8080
+  # -- Expose Prometheus metrics + the /healthz probe on `metricsPort` (CHASKI_METRICS_ENABLED).
+  metricsEnabled: true
+  # -- Metrics + health port (CHASKI_METRICS_PORT); kept off the public webhook port.
+  metricsPort: 8081
+  # -- Log level (CHASKI_LOG_LEVEL): debug, info, warn, or error.
+  logLevel: info
+  # -- Log format (CHASKI_LOG_FORMAT): json or text.
+  logFormat: json
+  # -- Inbound body cap in bytes (CHASKI_MAX_BODY_BYTES).
+  maxBodyBytes: 1048576
+  # -- Whole-request deadline (CHASKI_REQUEST_TIMEOUT): decode + gate + render + send + retry.
+  requestTimeout: 15s
+  # -- Global default retry attempts per target (CHASKI_RETRY_ATTEMPTS); a target's `retry.attempts` overrides it.
+  retryAttempts: 3
+  # -- Global default retry base backoff (CHASKI_RETRY_BACKOFF); a target's `retry.backoff` overrides it.
+  retryBackoff: 200ms
+
+  # -- Path chaski reads its config from (CHASKI_CONFIG): a single file, or a directory of `*.yaml` fragments (config.d). The default matches the rendered ConfigMap.
+  configPath: /config/chaski.yaml
+  # -- Where the config ConfigMap is mounted.
+  mountPath: /config
+  # -- Mount this existing ConfigMap instead of rendering one from `routes`/`targets` (e.g. for a config.d directory of fragments). Set `configPath` to `/config` for directory mode.
+  existingConfigMap: ""
+
+  # -- Route definitions, keyed by name (the URL path: POST /notify/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference.
+  routes: {}
+  #   alertmanager:
+  #     target: pushover
+  #     whenExpr: 'payload.status == "firing"'
+  #     title: '🔥 {{ .payload.commonLabels.alertname }}'
+  #     message: '{{ .payload.commonAnnotations.summary }}'
+  #     params: { priority: '2' }
+  # -- Target (sink) definitions, keyed by name. Each is exactly one of `apprise:` or `http:`. Credentials belong in `{{ env "VAR" }}` references resolved from the environment (see `auth`/`envFrom`), never inline.
+  targets: {}
+  #   pushover:
+  #     apprise:
+  #       url: 'pover://{{ env "PUSHOVER_USER" }}@{{ env "PUSHOVER_TOKEN" }}/'
+
+# Inbound authentication and provider credentials, delivered as environment
+# variables from a Secret.
+auth:
+  # -- The global inbound webhook token (CHASKI_WEBHOOK_TOKEN). If set, it is rendered into a chart-managed Secret. Leave empty and use `existingSecret` to supply it from your own (e.g. SOPS/sealed) Secret. With neither, inbound token auth is disabled (per-route `verify` still applies).
+  webhookToken: ""
+  # -- Use this existing Secret for the webhook token (and as a source for provider creds via `envFrom`) instead of rendering one.
+  existingSecret: ""
+  # -- Key in `existingSecret` holding the webhook token.
+  existingSecretKey: token
+
+# -- Extra environment variables as a map (templated). Use for non-secret values referenced by `{{ env "…" }}` in targets, e.g. GOTIFY_HOST.
+env: {}
+# -- Extra environment variables as a raw list (templated), e.g. valueFrom a Secret key for a single provider token.
+extraEnv: []
+# -- Sources of environment variables (templated). The idiomatic place to inject provider credentials from your own Secret(s), e.g. `- secretRef: { name: chaski-providers }`.
+envFrom: []
+
+# -- Deployment update strategy. RollingUpdate by default; chaski is stateless so a surge-then-drain rollout is safe.
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+serviceAccount:
+  # -- Create a ServiceAccount.
+  create: true
+  # -- ServiceAccount name; empty uses the chart fullname.
+  name: ""
+  # -- Mount the API token. chaski never calls the Kubernetes API, so this is off by default.
+  automount: false
+  # -- ServiceAccount annotations.
+  annotations: {}
+
+# -- Pod-level securityContext. chaski runs as the image's nonroot user (uid 65532); no host or elevated access is needed.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container securityContext. Drops all capabilities, read-only root filesystem, no privilege escalation.
+securityContext:
+  privileged: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# -- Startup probe (GET /healthz on the metrics port).
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: metrics
+  failureThreshold: 30
+  periodSeconds: 2
+# -- Liveness probe.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: metrics
+  periodSeconds: 20
+# -- Readiness probe.
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: metrics
+  periodSeconds: 10
+
+# -- Container resource requests/limits.
+resources: {}
+#   limits:
+#     memory: 128Mi
+#   requests:
+#     cpu: 10m
+#     memory: 32Mi
+
+service:
+  # -- Service type.
+  type: ClusterIP
+  # -- Webhook (http) service port.
+  port: 8080
+  # -- Service annotations.
+  annotations: {}
+  # -- externalTrafficPolicy (only applied when type is not ClusterIP).
+  externalTrafficPolicy: ""
+
+monitoring:
+  serviceMonitor:
+    # -- Create a Prometheus Operator ServiceMonitor (requires its CRDs and `config.metricsEnabled`).
+    enabled: false
+    # -- Scrape interval.
+    interval: 30s
+    # -- Scrape timeout.
+    scrapeTimeout: 10s
+    # -- Metrics path.
+    path: /metrics
+    # -- ServiceMonitor labels.
+    labels: {}
+    # -- ServiceMonitor annotations.
+    annotations: {}
+    # -- Prometheus metric relabelings.
+    metricRelabelings: []
+    # -- Prometheus relabelings.
+    relabelings: []
+
+podDisruptionBudget:
+  # -- Create a PodDisruptionBudget (meaningful only with replicaCount > 1).
+  enabled: false
+  # -- minAvailable (mutually exclusive with maxUnavailable).
+  minAvailable: 1
+  # -- maxUnavailable.
+  maxUnavailable: ""
+
+# -- Annotations added to the Deployment metadata, e.g. `reloader.stakater.com/auto: "true"` to roll the pod when a referenced ConfigMap/Secret changes (recommended when using `existingConfigMap`).
+deploymentAnnotations: {}
+# -- Annotations added to the pod. A `checksum/config` annotation is always added for the chart-managed ConfigMap so config edits roll the pod.
+podAnnotations: {}
+# -- Labels added to the pod.
+podLabels: {}
+
+# -- Additional volumes on the pod (templated).
+volumes: []
+# -- Additional volume mounts on the container (templated).
+volumeMounts: []
+# -- Additional init containers (templated). A `chaski validate` init container against the mounted config is a good CI/rollout gate.
+initContainers: []
+
+# -- Node selector for pod scheduling (templated).
+nodeSelector: {}
+# -- Tolerations for pod scheduling (templated).
+tolerations: []
+# -- Affinity rules for pod scheduling (templated).
+affinity: {}
+# -- Topology spread constraints (templated).
+topologySpreadConstraints: []
+# -- PriorityClass for the pod (templated); empty uses the cluster default.
+priorityClassName: ""
+# -- Grace period for a clean shutdown (drain).
+terminationGracePeriodSeconds: 30
+
+tests:
+  image:
+    # -- `helm test` connection-pod image; a gcr-mirrored curl, so the test never pulls from Docker Hub.
+    repository: mirror.gcr.io/curlimages/curl
+    # -- `helm test` image, pinned as `tag@sha256:digest` so Renovate bumps the tag and its digest together.
+    tag: "8.20.0@sha256:b3f1fb2a51d923260350d21b8654bbc607164a987e2f7c84a0ac199a67df812a"
+    # -- `helm test` image pull policy.
+    pullPolicy: IfNotPresent

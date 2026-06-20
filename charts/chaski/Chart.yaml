@@ -1,0 +1,26 @@
+---
+apiVersion: v2
+name: chaski
+description: A stateless CEL-gated webhook relay — gate any JSON with CEL, render with Go templates, relay to an apprise notification or an HTTP request
+type: application
+kubeVersion: ">=1.25.0-0"
+# version + appVersion are overridden at package time: version from the release
+# tag, appVersion from the same tag (the chart deploys chaski's own image).
+version: 0.0.0
+appVersion: "0.0.0"
+home: https://github.com/home-operations/chaski
+sources:
+  - https://github.com/home-operations/chaski
+maintainers:
+  - name: home-operations
+    email: contact@home-operations.com
+keywords:
+  - chaski
+  - webhook
+  - relay
+  - notifications
+  - apprise
+  - cel
+  - kubernetes
+annotations:
+  category: Notifications

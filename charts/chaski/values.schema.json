@@ -1,0 +1,690 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "affinity": {
+      "description": "Affinity rules for pod scheduling (templated).",
+      "required": [],
+      "title": "affinity",
+      "type": "object"
+    },
+    "auth": {
+      "description": "Inbound authentication and provider credentials, delivered as environment\nvariables from a Secret.",
+      "properties": {
+        "existingSecret": {
+          "default": "",
+          "description": "Use this existing Secret for the webhook token (and as a source for provider creds via `envFrom`) instead of rendering one.",
+          "title": "existingSecret",
+          "type": "string"
+        },
+        "existingSecretKey": {
+          "default": "token",
+          "description": "Key in `existingSecret` holding the webhook token.",
+          "title": "existingSecretKey",
+          "type": "string"
+        },
+        "webhookToken": {
+          "default": "",
+          "description": "The global inbound webhook token (CHASKI_WEBHOOK_TOKEN). If set, it is rendered into a chart-managed Secret. Leave empty and use `existingSecret` to supply it from your own (e.g. SOPS/sealed) Secret. With neither, inbound token auth is disabled (per-route `verify` still applies).",
+          "title": "webhookToken",
+          "type": "string"
+        }
+      },
+      "required": [],
+      "title": "auth",
+      "type": "object"
+    },
+    "config": {
+      "description": "The relay's configuration. Ops/secret settings become CHASKI_* env vars; the\nroutes + targets become a config file mounted at `config.mountPath`.",
+      "properties": {
+        "configPath": {
+          "default": "/config/chaski.yaml",
+          "description": "Path chaski reads its config from (CHASKI_CONFIG): a single file, or a directory of `*.yaml` fragments (config.d). The default matches the rendered ConfigMap.",
+          "title": "configPath",
+          "type": "string"
+        },
+        "existingConfigMap": {
+          "default": "",
+          "description": "Mount this existing ConfigMap instead of rendering one from `routes`/`targets` (e.g. for a config.d directory of fragments). Set `configPath` to `/config` for directory mode.",
+          "title": "existingConfigMap",
+          "type": "string"
+        },
+        "logFormat": {
+          "default": "json",
+          "description": "Log format (CHASKI_LOG_FORMAT): json or text.",
+          "title": "logFormat",
+          "type": "string"
+        },
+        "logLevel": {
+          "default": "info",
+          "description": "Log level (CHASKI_LOG_LEVEL): debug, info, warn, or error.",
+          "title": "logLevel",
+          "type": "string"
+        },
+        "maxBodyBytes": {
+          "default": 1048576,
+          "description": "Inbound body cap in bytes (CHASKI_MAX_BODY_BYTES).",
+          "title": "maxBodyBytes",
+          "type": "integer"
+        },
+        "metricsEnabled": {
+          "default": true,
+          "description": "Expose Prometheus metrics + the /healthz probe on `metricsPort` (CHASKI_METRICS_ENABLED).",
+          "title": "metricsEnabled",
+          "type": "boolean"
+        },
+        "metricsPort": {
+          "default": 8081,
+          "description": "Metrics + health port (CHASKI_METRICS_PORT); kept off the public webhook port.",
+          "title": "metricsPort",
+          "type": "integer"
+        },
+        "mountPath": {
+          "default": "/config",
+          "description": "Where the config ConfigMap is mounted.",
+          "title": "mountPath",
+          "type": "string"
+        },
+        "port": {
+          "default": 8080,
+          "description": "Webhook receiver port (CHASKI_PORT); also the container/Service http port.",
+          "title": "port",
+          "type": "integer"
+        },
+        "requestTimeout": {
+          "default": "15s",
+          "description": "Whole-request deadline (CHASKI_REQUEST_TIMEOUT): decode + gate + render + send + retry.",
+          "title": "requestTimeout",
+          "type": "string"
+        },
+        "retryAttempts": {
+          "default": 3,
+          "description": "Global default retry attempts per target (CHASKI_RETRY_ATTEMPTS); a target's `retry.attempts` overrides it.",
+          "title": "retryAttempts",
+          "type": "integer"
+        },
+        "retryBackoff": {
+          "default": "200ms",
+          "description": "Global default retry base backoff (CHASKI_RETRY_BACKOFF); a target's `retry.backoff` overrides it.",
+          "title": "retryBackoff",
+          "type": "string"
+        },
+        "routes": {
+          "description": "Route definitions, keyed by name (the URL path: POST /notify/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference.",
+          "required": [],
+          "title": "routes",
+          "type": "object"
+        },
+        "targets": {
+          "description": "  alertmanager:\n    target: pushover\n    whenExpr: 'payload.status == \"firing\"'\n    title: '🔥 {{ .payload.commonLabels.alertname }}'\n    message: '{{ .payload.commonAnnotations.summary }}'\n    params: { priority: '2' }\nTarget (sink) definitions, keyed by name. Each is exactly one of `apprise:` or `http:`. Credentials belong in `{{ env \"VAR\" }}` references resolved from the environment (see `auth`/`envFrom`), never inline.",
+          "required": [],
+          "title": "targets",
+          "type": "object"
+        }
+      },
+      "required": [],
+      "title": "config",
+      "type": "object"
+    },
+    "deploymentAnnotations": {
+      "description": "Annotations added to the Deployment metadata, e.g. `reloader.stakater.com/auto: \"true\"` to roll the pod when a referenced ConfigMap/Secret changes (recommended when using `existingConfigMap`).",
+      "required": [],
+      "title": "deploymentAnnotations",
+      "type": "object"
+    },
+    "env": {
+      "description": "Extra environment variables as a map (templated). Use for non-secret values referenced by `{{ env \"…\" }}` in targets, e.g. GOTIFY_HOST.",
+      "required": [],
+      "title": "env",
+      "type": "object"
+    },
+    "envFrom": {
+      "description": "Sources of environment variables (templated). The idiomatic place to inject provider credentials from your own Secret(s), e.g. `- secretRef: { name: chaski-providers }`.",
+      "items": {
+        "required": []
+      },
+      "title": "envFrom",
+      "type": "array"
+    },
+    "extraEnv": {
+      "description": "Extra environment variables as a raw list (templated), e.g. valueFrom a Secret key for a single provider token.",
+      "items": {
+        "required": []
+      },
+      "title": "extraEnv",
+      "type": "array"
+    },
+    "fullnameOverride": {
+      "default": "",
+      "description": "Override the generated name used for every resource's `metadata.name` (the chart \"fullname\").",
+      "title": "fullnameOverride",
+      "type": "string"
+    },
+    "global": {
+      "description": "Global values are values that can be accessed from any chart or subchart by exactly the same name.",
+      "required": [],
+      "title": "global",
+      "type": "object"
+    },
+    "image": {
+      "properties": {
+        "digest": {
+          "default": "",
+          "description": "Pin the image by digest (sha256:…); set by the release pipeline. When set, it overrides the tag.",
+          "title": "digest",
+          "type": "string"
+        },
+        "pullPolicy": {
+          "default": "IfNotPresent",
+          "description": "Image pull policy.",
+          "title": "pullPolicy",
+          "type": "string"
+        },
+        "repository": {
+          "default": "ghcr.io/home-operations/chaski",
+          "description": "Image repository.",
+          "title": "repository",
+          "type": "string"
+        },
+        "tag": {
+          "default": "",
+          "description": "Overrides the image tag; defaults to the chart appVersion.",
+          "title": "tag",
+          "type": "string"
+        }
+      },
+      "required": [],
+      "title": "image",
+      "type": "object"
+    },
+    "imagePullSecrets": {
+      "description": "Image pull secrets for private registries.",
+      "items": {
+        "required": []
+      },
+      "title": "imagePullSecrets",
+      "type": "array"
+    },
+    "initContainers": {
+      "description": "Additional init containers (templated). A `chaski validate` init container against the mounted config is a good CI/rollout gate.",
+      "items": {
+        "required": []
+      },
+      "title": "initContainers",
+      "type": "array"
+    },
+    "livenessProbe": {
+      "description": "Liveness probe.",
+      "properties": {
+        "httpGet": {
+          "properties": {
+            "path": {
+              "default": "/healthz",
+              "title": "path",
+              "type": "string"
+            },
+            "port": {
+              "default": "metrics",
+              "title": "port",
+              "type": "string"
+            }
+          },
+          "required": [],
+          "title": "httpGet",
+          "type": "object"
+        },
+        "periodSeconds": {
+          "default": 20,
+          "title": "periodSeconds",
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "title": "livenessProbe",
+      "type": "object"
+    },
+    "monitoring": {
+      "properties": {
+        "serviceMonitor": {
+          "properties": {
+            "annotations": {
+              "description": "ServiceMonitor annotations.",
+              "required": [],
+              "title": "annotations",
+              "type": "object"
+            },
+            "enabled": {
+              "default": false,
+              "description": "Create a Prometheus Operator ServiceMonitor (requires its CRDs and `config.metricsEnabled`).",
+              "title": "enabled",
+              "type": "boolean"
+            },
+            "interval": {
+              "default": "30s",
+              "description": "Scrape interval.",
+              "title": "interval",
+              "type": "string"
+            },
+            "labels": {
+              "description": "ServiceMonitor labels.",
+              "required": [],
+              "title": "labels",
+              "type": "object"
+            },
+            "metricRelabelings": {
+              "description": "Prometheus metric relabelings.",
+              "items": {
+                "required": []
+              },
+              "title": "metricRelabelings",
+              "type": "array"
+            },
+            "path": {
+              "default": "/metrics",
+              "description": "Metrics path.",
+              "title": "path",
+              "type": "string"
+            },
+            "relabelings": {
+              "description": "Prometheus relabelings.",
+              "items": {
+                "required": []
+              },
+              "title": "relabelings",
+              "type": "array"
+            },
+            "scrapeTimeout": {
+              "default": "10s",
+              "description": "Scrape timeout.",
+              "title": "scrapeTimeout",
+              "type": "string"
+            }
+          },
+          "required": [],
+          "title": "serviceMonitor",
+          "type": "object"
+        }
+      },
+      "required": [],
+      "title": "monitoring",
+      "type": "object"
+    },
+    "nameOverride": {
+      "default": "",
+      "description": "Override the chart name used in the `app.kubernetes.io/name` label.",
+      "title": "nameOverride",
+      "type": "string"
+    },
+    "nodeSelector": {
+      "description": "Node selector for pod scheduling (templated).",
+      "required": [],
+      "title": "nodeSelector",
+      "type": "object"
+    },
+    "podAnnotations": {
+      "description": "Annotations added to the pod. A `checksum/config` annotation is always added for the chart-managed ConfigMap so config edits roll the pod.",
+      "required": [],
+      "title": "podAnnotations",
+      "type": "object"
+    },
+    "podDisruptionBudget": {
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Create a PodDisruptionBudget (meaningful only with replicaCount \u003e 1).",
+          "title": "enabled",
+          "type": "boolean"
+        },
+        "maxUnavailable": {
+          "default": "",
+          "description": "maxUnavailable.",
+          "title": "maxUnavailable",
+          "type": "string"
+        },
+        "minAvailable": {
+          "default": 1,
+          "description": "minAvailable (mutually exclusive with maxUnavailable).",
+          "title": "minAvailable",
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "title": "podDisruptionBudget",
+      "type": "object"
+    },
+    "podLabels": {
+      "description": "Labels added to the pod.",
+      "required": [],
+      "title": "podLabels",
+      "type": "object"
+    },
+    "podSecurityContext": {
+      "description": "Pod-level securityContext. chaski runs as the image's nonroot user (uid 65532); no host or elevated access is needed.",
+      "properties": {
+        "fsGroup": {
+          "default": 65532,
+          "title": "fsGroup",
+          "type": "integer"
+        },
+        "runAsGroup": {
+          "default": 65532,
+          "title": "runAsGroup",
+          "type": "integer"
+        },
+        "runAsNonRoot": {
+          "default": true,
+          "title": "runAsNonRoot",
+          "type": "boolean"
+        },
+        "runAsUser": {
+          "default": 65532,
+          "title": "runAsUser",
+          "type": "integer"
+        },
+        "seccompProfile": {
+          "properties": {
+            "type": {
+              "default": "RuntimeDefault",
+              "title": "type",
+              "type": "string"
+            }
+          },
+          "required": [],
+          "title": "seccompProfile",
+          "type": "object"
+        }
+      },
+      "required": [],
+      "title": "podSecurityContext",
+      "type": "object"
+    },
+    "priorityClassName": {
+      "default": "",
+      "description": "PriorityClass for the pod (templated); empty uses the cluster default.",
+      "title": "priorityClassName",
+      "type": "string"
+    },
+    "readinessProbe": {
+      "description": "Readiness probe.",
+      "properties": {
+        "httpGet": {
+          "properties": {
+            "path": {
+              "default": "/healthz",
+              "title": "path",
+              "type": "string"
+            },
+            "port": {
+              "default": "metrics",
+              "title": "port",
+              "type": "string"
+            }
+          },
+          "required": [],
+          "title": "httpGet",
+          "type": "object"
+        },
+        "periodSeconds": {
+          "default": 10,
+          "title": "periodSeconds",
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "title": "readinessProbe",
+      "type": "object"
+    },
+    "replicaCount": {
+      "default": 1,
+      "description": "Number of replicas. chaski is stateless, so \u003e1 is just more capacity/HA.",
+      "title": "replicaCount",
+      "type": "integer"
+    },
+    "resources": {
+      "description": "Container resource requests/limits.",
+      "required": [],
+      "title": "resources",
+      "type": "object"
+    },
+    "securityContext": {
+      "description": "Container securityContext. Drops all capabilities, read-only root filesystem, no privilege escalation.",
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "default": false,
+          "title": "allowPrivilegeEscalation",
+          "type": "boolean"
+        },
+        "capabilities": {
+          "properties": {
+            "drop": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ],
+                "required": []
+              },
+              "title": "drop",
+              "type": "array"
+            }
+          },
+          "required": [],
+          "title": "capabilities",
+          "type": "object"
+        },
+        "privileged": {
+          "default": false,
+          "title": "privileged",
+          "type": "boolean"
+        },
+        "readOnlyRootFilesystem": {
+          "default": true,
+          "title": "readOnlyRootFilesystem",
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "title": "securityContext",
+      "type": "object"
+    },
+    "service": {
+      "properties": {
+        "annotations": {
+          "description": "Service annotations.",
+          "required": [],
+          "title": "annotations",
+          "type": "object"
+        },
+        "externalTrafficPolicy": {
+          "default": "",
+          "description": "externalTrafficPolicy (only applied when type is not ClusterIP).",
+          "title": "externalTrafficPolicy",
+          "type": "string"
+        },
+        "port": {
+          "default": 8080,
+          "description": "Webhook (http) service port.",
+          "title": "port",
+          "type": "integer"
+        },
+        "type": {
+          "default": "ClusterIP",
+          "description": "Service type.",
+          "title": "type",
+          "type": "string"
+        }
+      },
+      "required": [],
+      "title": "service",
+      "type": "object"
+    },
+    "serviceAccount": {
+      "properties": {
+        "annotations": {
+          "description": "ServiceAccount annotations.",
+          "required": [],
+          "title": "annotations",
+          "type": "object"
+        },
+        "automount": {
+          "default": false,
+          "description": "Mount the API token. chaski never calls the Kubernetes API, so this is off by default.",
+          "title": "automount",
+          "type": "boolean"
+        },
+        "create": {
+          "default": true,
+          "description": "Create a ServiceAccount.",
+          "title": "create",
+          "type": "boolean"
+        },
+        "name": {
+          "default": "",
+          "description": "ServiceAccount name; empty uses the chart fullname.",
+          "title": "name",
+          "type": "string"
+        }
+      },
+      "required": [],
+      "title": "serviceAccount",
+      "type": "object"
+    },
+    "startupProbe": {
+      "description": "Startup probe (GET /healthz on the metrics port).",
+      "properties": {
+        "failureThreshold": {
+          "default": 30,
+          "title": "failureThreshold",
+          "type": "integer"
+        },
+        "httpGet": {
+          "properties": {
+            "path": {
+              "default": "/healthz",
+              "title": "path",
+              "type": "string"
+            },
+            "port": {
+              "default": "metrics",
+              "title": "port",
+              "type": "string"
+            }
+          },
+          "required": [],
+          "title": "httpGet",
+          "type": "object"
+        },
+        "periodSeconds": {
+          "default": 2,
+          "title": "periodSeconds",
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "title": "startupProbe",
+      "type": "object"
+    },
+    "strategy": {
+      "description": "Deployment update strategy. RollingUpdate by default; chaski is stateless so a surge-then-drain rollout is safe.",
+      "properties": {
+        "rollingUpdate": {
+          "properties": {
+            "maxSurge": {
+              "default": 1,
+              "title": "maxSurge",
+              "type": "integer"
+            },
+            "maxUnavailable": {
+              "default": 0,
+              "title": "maxUnavailable",
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "title": "rollingUpdate",
+          "type": "object"
+        },
+        "type": {
+          "default": "RollingUpdate",
+          "title": "type",
+          "type": "string"
+        }
+      },
+      "required": [],
+      "title": "strategy",
+      "type": "object"
+    },
+    "terminationGracePeriodSeconds": {
+      "default": 30,
+      "description": "Grace period for a clean shutdown (drain).",
+      "title": "terminationGracePeriodSeconds",
+      "type": "integer"
+    },
+    "tests": {
+      "properties": {
+        "image": {
+          "properties": {
+            "pullPolicy": {
+              "default": "IfNotPresent",
+              "description": "`helm test` image pull policy.",
+              "title": "pullPolicy",
+              "type": "string"
+            },
+            "repository": {
+              "default": "mirror.gcr.io/curlimages/curl",
+              "description": "`helm test` connection-pod image; a gcr-mirrored curl, so the test never pulls from Docker Hub.",
+              "title": "repository",
+              "type": "string"
+            },
+            "tag": {
+              "default": "8.20.0@sha256:b3f1fb2a51d923260350d21b8654bbc607164a987e2f7c84a0ac199a67df812a",
+              "description": "`helm test` image, pinned as `tag",
+              "title": "tag",
+              "type": "string"
+            }
+          },
+          "required": [],
+          "title": "image",
+          "type": "object"
+        }
+      },
+      "required": [],
+      "title": "tests",
+      "type": "object"
+    },
+    "tolerations": {
+      "description": "Tolerations for pod scheduling (templated).",
+      "items": {
+        "required": []
+      },
+      "title": "tolerations",
+      "type": "array"
+    },
+    "topologySpreadConstraints": {
+      "description": "Topology spread constraints (templated).",
+      "items": {
+        "required": []
+      },
+      "title": "topologySpreadConstraints",
+      "type": "array"
+    },
+    "volumeMounts": {
+      "description": "Additional volume mounts on the container (templated).",
+      "items": {
+        "required": []
+      },
+      "title": "volumeMounts",
+      "type": "array"
+    },
+    "volumes": {
+      "description": "Additional volumes on the pod (templated).",
+      "items": {
+        "required": []
+      },
+      "title": "volumes",
+      "type": "array"
+    }
+  },
+  "required": [],
+  "type": "object"
+}

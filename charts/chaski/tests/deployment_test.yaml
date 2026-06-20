@@ -1,0 +1,71 @@
+suite: deployment
+templates:
+  - templates/deployment.tpl
+  - templates/configmap.tpl
+release:
+  name: chaski
+  namespace: chaski
+tests:
+  - it: is a Deployment with a RollingUpdate strategy by default
+    template: templates/deployment.tpl
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+
+  - it: wires the core CHASKI_* env
+    template: templates/deployment.tpl
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CHASKI_PORT
+            value: "8080"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CHASKI_CONFIG
+            value: /config/chaski.yaml
+
+  - it: mounts the config and stamps a config checksum
+    template: templates/deployment.tpl
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /config
+            readOnly: true
+      - exists:
+          path: spec.template.metadata.annotations["checksum/config"]
+
+  - it: has no token env by default but adds it from the chart Secret when set
+    template: templates/deployment.tpl
+    set:
+      auth.webhookToken: s3cr3t
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CHASKI_WEBHOOK_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: chaski
+                key: token
+
+  - it: sources the token from an existing Secret when given
+    template: templates/deployment.tpl
+    set:
+      auth.existingSecret: my-secret
+      auth.existingSecretKey: webhook
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CHASKI_WEBHOOK_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: my-secret
+                key: webhook

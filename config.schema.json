@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/home-operations/chaski/internal/config/route-config",
+  "$ref": "#/$defs/RouteConfig",
+  "$defs": {
+    "AppriseSink": {
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": ["url"]
+    },
+    "HTTPSink": {
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "timeout": {
+          "type": "string",
+          "examples": ["10s", "500ms", "1m30s"]
+        },
+        "retry": {
+          "$ref": "#/$defs/Retry"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": ["url"]
+    },
+    "Response": {
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "skipStatus": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Retry": {
+      "properties": {
+        "attempts": {
+          "type": "integer"
+        },
+        "backoff": {
+          "type": "string",
+          "examples": ["10s", "500ms", "1m30s"]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Route": {
+      "properties": {
+        "target": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "whenExpr": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "verify": {
+          "$ref": "#/$defs/Verify"
+        },
+        "response": {
+          "$ref": "#/$defs/Response"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": ["target"]
+    },
+    "RouteConfig": {
+      "properties": {
+        "routes": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Route"
+          },
+          "type": "object"
+        },
+        "targets": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Target"
+          },
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Target": {
+      "oneOf": [
+        {
+          "required": ["apprise"]
+        },
+        {
+          "required": ["http"]
+        }
+      ],
+      "properties": {
+        "apprise": {
+          "$ref": "#/$defs/AppriseSink"
+        },
+        "http": {
+          "$ref": "#/$defs/HTTPSink"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Verify": {
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "header": {
+          "type": "string"
+        },
+        "algo": {
+          "type": "string"
+        },
+        "encoding": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "secret": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

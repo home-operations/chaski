@@ -1,0 +1,14 @@
+# The Dockerfile COPYs only go.mod/go.sum and the cmd/ + internal/ trees, but a
+# lean context still speeds the build and avoids leaking repo cruft into layers.
+.git
+.github
+.mise
+charts
+test
+*_test.go
+cover.out
+CHANGELOG.md
+LICENSE
+README.md
+Dockerfile
+.dockerignore

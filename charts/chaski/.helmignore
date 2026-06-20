@@ -1,0 +1,10 @@
+# Patterns to ignore when building Helm packages.
+.DS_Store
+.git/
+.gitignore
+*.tmpl
+# helm-unittest specs and the doc template are not part of the packaged chart.
+# Anchored with a leading slash so templates/tests/ (the helm test hook) is kept.
+/tests/
+README.md.gotmpl
+/ci/

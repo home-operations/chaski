@@ -1,0 +1,25 @@
+chaski {{ .Chart.AppVersion }} is deployed as {{ include "chaski.fullname" . }} in namespace {{ .Release.Namespace }}.
+
+{{- $routes := .Values.config.routes }}
+{{- if and (not .Values.config.existingConfigMap) (not $routes) }}
+
+⚠  No routes are configured — every webhook will 404 and the relay sits idle.
+   Set `config.routes` and `config.targets` (or `config.existingConfigMap`), then upgrade.
+{{- end }}
+{{- if and (not .Values.auth.webhookToken) (not .Values.auth.existingSecret) }}
+
+ℹ  Inbound token auth is disabled (no `auth.webhookToken` / `auth.existingSecret`) —
+   fine for cluster-internal senders. Set one for untrusted callers, or gate a
+   route with a `verify` (HMAC/token) block.
+{{- end }}
+
+Send a webhook from inside the cluster (replace the route + token):
+
+  kubectl -n {{ .Release.Namespace }} run chaski-curl --rm -it --restart=Never --image=curlimages/curl -- \
+    curl -fsS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      --data '{"status":"firing"}' \
+      "http://{{ include "chaski.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/notify/<route>?dryRun=1"
+
+Validate the config (the same checks chaski runs at boot):
+
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "chaski.fullname" . }} -- /chaski validate -c {{ .Values.config.configPath }}
