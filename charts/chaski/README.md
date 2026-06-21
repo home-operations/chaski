@@ -91,6 +91,7 @@ Kubernetes: `>=1.25.0-0`
 | config.smtpMaxRecipients | int | `50` | Max recipients per message (CHASKI_SMTP_MAX_RECIPIENTS). |
 | config.smtpPort | int | `8025` | SMTP listener port (CHASKI_SMTP_PORT); also the container/Service smtp port when enabled. |
 | config.targets | object | `{}` | Target (sink) definitions, keyed by name. Each is exactly one of `apprise:` or `http:`. Credentials belong in `{{ env "VAR" }}` references resolved from the environment (see `auth`/`envFrom`), never inline. |
+| config.templates | object | `{}` | Shared named Go-template snippets, keyed by name. Callable from any route field with `{{ template "name" . }}` or `{{ include "name" . }}`. Emitted verbatim into the ConfigMap alongside routes/targets. |
 | deploymentAnnotations | object | `{}` | Annotations added to the Deployment metadata, e.g. `reloader.stakater.com/auto: "true"` to roll the pod when a referenced ConfigMap/Secret changes (recommended when using `existingConfigMap`). |
 | env | object | `{}` | Extra environment variables as a map (templated). Use for non-secret values referenced by `{{ env "…" }}` in targets, e.g. GOTIFY_HOST. |
 | envFrom | list | `[]` | Sources of environment variables (templated). The idiomatic place to inject provider credentials from your own Secret(s), e.g. `- secretRef: { name: chaski-providers }`. |

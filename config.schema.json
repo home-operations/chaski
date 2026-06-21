@@ -124,6 +124,12 @@
             "$ref": "#/$defs/Target"
           },
           "type": "object"
+        },
+        "templates": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
         }
       },
       "additionalProperties": false,

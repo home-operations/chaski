@@ -13,6 +13,14 @@ import (
 type RouteConfig struct {
 	Routes  map[string]*Route  `yaml:"routes"`
 	Targets map[string]*Target `yaml:"targets"`
+	// Templates are shared Go-template snippets, callable from any route field
+	// with {{ template "name" . }} or {{ include "name" . }} (the latter pipes).
+	// Each value is a Go template, rendered per request like the route fields.
+	Templates map[string]string `yaml:"templates"`
+
+	// templateSources maps a template name to the fragment it came from, for
+	// config.d duplicate-name errors; set by the loader, never decoded.
+	templateSources map[string]string `yaml:"-"`
 }
 
 // Route gates an inbound webhook with a CEL expression and renders the fields

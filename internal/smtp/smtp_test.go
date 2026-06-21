@@ -86,7 +86,7 @@ func TestLocalpart(t *testing.T) {
 	for in, want := range map[string]string{
 		"alerts@chaski":         "alerts",
 		"<alerts@chaski.local>": "alerts",
-		"sonarr-download@x.y.z": "sonarr-download",
+		"backup-failed@x.y.z":   "backup-failed",
 		"  spaced@host  ":       "spaced",
 		"noatsign":              "noatsign",
 	} {

@@ -51,9 +51,16 @@ func Build(rc *config.RouteConfig, cfg *config.Config, opts Options) (*Engine, e
 		sinks[name] = s
 	}
 
+	// The shared named-template snippets, compiled once and reused by every
+	// route's field templates.
+	set, err := render.NewSet(rc.Templates)
+	if err != nil {
+		return nil, fmt.Errorf("relay: %w", err)
+	}
+
 	routes := make(map[string]*Route, len(rc.Routes))
 	for name, rt := range rc.Routes {
-		cr, err := buildRoute(name, rt, sinks)
+		cr, err := buildRoute(name, rt, sinks, set)
 		if err != nil {
 			return nil, fmt.Errorf("relay: route %q (%s): %w", name, rt.Source, err)
 		}
@@ -85,7 +92,7 @@ type Route struct {
 	skipState int
 }
 
-func buildRoute(name string, rt *config.Route, sinks map[string]sink.Sink) (*Route, error) {
+func buildRoute(name string, rt *config.Route, sinks map[string]sink.Sink, set *render.Set) (*Route, error) {
 	g, err := gate.Compile(rt.WhenExpr)
 	if err != nil {
 		return nil, err
@@ -97,21 +104,21 @@ func buildRoute(name string, rt *config.Route, sinks map[string]sink.Sink) (*Rou
 
 	var title *render.Template
 	if rt.Title != "" {
-		if title, err = render.Compile("title", rt.Title); err != nil {
+		if title, err = set.Compile("title", rt.Title); err != nil {
 			return nil, err
 		}
 	}
 	var message *render.Template
 	if rt.Message != nil {
-		if message, err = render.Compile("message", *rt.Message); err != nil {
+		if message, err = set.Compile("message", *rt.Message); err != nil {
 			return nil, err
 		}
 	}
-	params, err := render.CompileMap("params", rt.Params)
+	params, err := set.CompileMap("params", rt.Params)
 	if err != nil {
 		return nil, err
 	}
-	headers, err := render.CompileMap("headers", rt.Headers)
+	headers, err := set.CompileMap("headers", rt.Headers)
 	if err != nil {
 		return nil, err
 	}

@@ -76,6 +76,48 @@ func handle(r *relay.Route, payload any, dry bool) relay.Result {
 	})
 }
 
+func TestNamedTemplateRendersInField(t *testing.T) {
+	const y = `
+templates:
+  label: '[{{ .payload.level }}]'
+targets: { po: { apprise: { url: 'pover://u@t/' } } }
+routes:
+  r:
+    target: po
+    message: '{{ template "label" . }} {{ .payload.text }}'
+`
+	fn := &fakeNotifier{}
+	r := route(t, engine(t, y, fn))
+	res := handle(r, map[string]any{"level": "WARN", "text": "disk full"}, false)
+	if res.Kind != relay.Relayed {
+		t.Fatalf("kind=%v err=%v, want Relayed", res.Kind, res.Err)
+	}
+	if fn.lastBody != "[WARN] disk full" {
+		t.Errorf("body = %q, want %q", fn.lastBody, "[WARN] disk full")
+	}
+}
+
+func TestBadNamedTemplateFailsBuild(t *testing.T) {
+	const y = `
+templates: { bad: '{{ .x. }}' }
+targets: { po: { apprise: { url: 'pover://u@t/' } } }
+routes: { r: { target: po, message: 'x' } }
+`
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+	if err := os.WriteFile(file, []byte(y), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc, err := config.LoadRouteConfig(file)
+	if err != nil {
+		t.Fatalf("LoadRouteConfig: %v", err)
+	}
+	cfg := &config.Config{RetryAttempts: 1, RetryBackoff: time.Millisecond, RequestTimeout: time.Second}
+	if _, err := relay.Build(rc, cfg, relay.Options{Notifier: &fakeNotifier{}}); err == nil {
+		t.Fatal("relay.Build with a malformed template = nil error, want a parse error")
+	}
+}
+
 func TestGateSkips(t *testing.T) {
 	fn := &fakeNotifier{}
 	r := route(t, engine(t, apprise1, fn))
