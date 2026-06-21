@@ -82,6 +82,8 @@ func run() error {
 		logger.Warn("no routes configured; relay is idle (every webhook will 404)", "config", cfg.ConfigPath)
 	}
 
+	server.RecordBuildInfo(version, commit)
+
 	logger.Info("starting chaski",
 		"version", version,
 		"commit", commit,

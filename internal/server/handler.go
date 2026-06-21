@@ -43,34 +43,40 @@ func handleHealth(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) handleNotify(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
+		webhookRejected.WithLabelValues("method").Inc()
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 	if !s.tokenOK(r) {
+		webhookRejected.WithLabelValues("unauthorized").Inc()
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	route, ok := s.engine.Lookup(r.PathValue("route"))
 	if !ok {
+		webhookRejected.WithLabelValues("not_found").Inc()
 		handleNotFound(w, r)
 		return
 	}
 
 	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, s.cfg.MaxBodyBytes))
 	if err != nil {
+		webhookRejected.WithLabelValues("body").Inc()
 		writeError(w, http.StatusBadRequest, "request body too large or unreadable")
 		return
 	}
 
 	// Signature verification runs over the raw bytes, before any decode.
 	if !route.Verify(r.Header, raw) {
+		webhookRejected.WithLabelValues("signature").Inc()
 		writeError(w, http.StatusUnauthorized, "signature verification failed")
 		return
 	}
 
 	payload, contentType, err := relay.DecodeBody(r.Header.Get("Content-Type"), raw)
 	if err != nil {
+		webhookRejected.WithLabelValues("decode").Inc()
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
