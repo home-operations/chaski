@@ -148,7 +148,7 @@ func printSummary(w io.Writer, path string, rc *config.RouteConfig) {
 	p("ok: %s — %d route(s), %d target(s), %d template(s)\n", path, len(rc.Routes), len(rc.Targets), len(rc.Templates))
 	for _, name := range slices.Sorted(maps.Keys(rc.Routes)) {
 		r := rc.Routes[name]
-		p("  route %-24s (%s) → %v\n", name, r.Source, []string(r.Target))
+		p("  route %-24s (%s) → %v\n", name, r.Source, targetNames(r.Target))
 	}
 	for _, name := range slices.Sorted(maps.Keys(rc.Targets)) {
 		t := rc.Targets[name]
@@ -157,4 +157,17 @@ func printSummary(w io.Writer, path string, rc *config.RouteConfig) {
 	for _, name := range slices.Sorted(maps.Keys(rc.Templates)) {
 		p("  template %-21s (%s)\n", name, rc.TemplateSource(name))
 	}
+}
+
+// targetNames renders a route's fan-out list for the summary, marking a target
+// that carries its own whenExpr with a trailing "?".
+func targetNames(refs config.TargetRefs) []string {
+	names := make([]string, len(refs))
+	for i, ref := range refs {
+		names[i] = ref.Name
+		if ref.WhenExpr != "" {
+			names[i] += "?"
+		}
+	}
+	return names
 }

@@ -8,6 +8,66 @@ import (
 	"time"
 )
 
+// loadTarget loads a config whose route "r" uses the given `target:` YAML, with
+// targets a and b defined, and returns the decoded TargetRefs (or the error).
+func loadTarget(t *testing.T, targetYAML string) (TargetRefs, error) {
+	t.Helper()
+	body := "targets:\n  a: { apprise: { url: 'pover://u@t/a' } }\n  b: { apprise: { url: 'pover://u@t/b' } }\nroutes:\n  r:\n    message: m\n    target: " + targetYAML + "\n"
+	dir := t.TempDir()
+	path := filepath.Join(dir, "c.yaml")
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc, err := LoadRouteConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	return rc.Routes["r"].Target, nil
+}
+
+func TestTargetRefsDecode(t *testing.T) {
+	t.Run("scalar", func(t *testing.T) {
+		got, err := loadTarget(t, "a")
+		if err != nil || len(got) != 1 || got[0].Name != "a" || got[0].WhenExpr != "" {
+			t.Fatalf("got %+v, err %v", got, err)
+		}
+	})
+	t.Run("list of names", func(t *testing.T) {
+		got, err := loadTarget(t, "[a, b]")
+		if err != nil || len(got) != 2 || got[0].Name != "a" || got[1].Name != "b" {
+			t.Fatalf("got %+v, err %v", got, err)
+		}
+	})
+	t.Run("single object", func(t *testing.T) {
+		got, err := loadTarget(t, `{ name: a, whenExpr: 'payload.x == 1' }`)
+		if err != nil || len(got) != 1 || got[0].Name != "a" || got[0].WhenExpr != "payload.x == 1" {
+			t.Fatalf("got %+v, err %v", got, err)
+		}
+	})
+	t.Run("mixed names and objects", func(t *testing.T) {
+		got, err := loadTarget(t, `[a, { name: b, whenExpr: 'payload.x == 1' }]`)
+		if err != nil {
+			t.Fatalf("err %v", err)
+		}
+		if len(got) != 2 || got[0].Name != "a" || got[0].WhenExpr != "" ||
+			got[1].Name != "b" || got[1].WhenExpr != "payload.x == 1" {
+			t.Fatalf("got %+v", got)
+		}
+	})
+	t.Run("rejections", func(t *testing.T) {
+		for _, bad := range []string{
+			`[{ name: a, bogus: 1 }]`,      // unknown key
+			`[{ whenExpr: 'true' }]`,       // missing name
+			`[{ name: a, whenExpr: [x] }]`, // non-scalar value
+			`""`,                           // empty name
+		} {
+			if _, err := loadTarget(t, bad); err == nil {
+				t.Errorf("target %q decoded without error, want rejection", bad)
+			}
+		}
+	})
+}
+
 func write(t *testing.T, path, body string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -94,7 +154,7 @@ func TestLoadFile(t *testing.T) {
 		t.Errorf("route title was altered at load: %q", got)
 	}
 	// target scalar vs list both decode.
-	if d := rc.Routes["deploy"].Target; len(d) != 2 || d[0] != "pushover" || d[1] != "ingest" {
+	if d := rc.Routes["deploy"].Target; len(d) != 2 || d[0].Name != "pushover" || d[1].Name != "ingest" {
 		t.Errorf("deploy target = %v, want [pushover ingest]", d)
 	}
 }

@@ -13,7 +13,8 @@ plain HTTP request.
 ## Features
 
 - **Routing by path** — `POST /notify/{route}`; each route is configured
-  independently and can fan out to several targets concurrently.
+  independently and can fan out to several targets concurrently, optionally
+  gating each target with its own `whenExpr`.
 - **CEL gate** — a per-route `whenExpr` decides whether a request is relayed.
 - **Go-template fields** — `title`, `message`, per-provider `params`, and HTTP
   `headers` are rendered per request with [sprout](https://github.com/go-sprout/sprout)
@@ -85,6 +86,25 @@ chaski validate -c ./chaski.yaml --payload sample.json --route alertmanager
 
 A route relays to one or more named targets; a target is exactly one of two
 kinds.
+
+A target entry can be a bare name or a `{ name, whenExpr }` object. The
+`whenExpr` is a CEL boolean (the same variables as the route gate) that gates
+that single target, so one route fans out only to the targets whose expression
+matches — useful for mirroring an event to the right dev instance:
+
+```yaml
+routes:
+  github:
+    whenExpr: payload.repository.full_name == "immich-app/immich" # optional route prefilter
+    target:
+      - prod-notify # bare name ⇒ always (when the route fires)
+      - { name: dev-alice, whenExpr: 'payload.sender.login == "alice"' }
+      - { name: dev-bob, whenExpr: "payload.pull_request.draft == false" }
+```
+
+The route fires on its own `whenExpr`, then each target sends only if its
+`whenExpr` (default true) also matches; if none match, the request is skipped.
+Target names and URLs are always config-defined — never taken from the payload.
 
 ### apprise
 
