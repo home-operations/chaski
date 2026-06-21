@@ -2,6 +2,7 @@ package render_test
 
 import (
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/home-operations/chaski/internal/render"
@@ -69,6 +70,77 @@ func TestSetBadSnippetFailsAtLoad(t *testing.T) {
 	if _, err := render.NewSet(map[string]string{"bad": "{{ .x. }}"}); err == nil {
 		t.Fatal("NewSet with a malformed snippet = nil error, want a parse error")
 	}
+}
+
+// TestSetFieldNameDoesNotCollideWithSnippet pins the fix for a snippet named
+// like a field role: it must not be clobbered by the field of the same name,
+// and {{ template "title" . }} must resolve to the snippet (not self-recurse).
+func TestSetFieldNameDoesNotCollideWithSnippet(t *testing.T) {
+	s := mustSet(t, map[string]string{"title": "[{{ .payload.sev }}]"})
+	tpl, err := s.Compile("title", `{{ template "title" . }} alert`)
+	if err != nil {
+		t.Fatalf("Compile: %v", err)
+	}
+	got, err := tpl.Render(render.Data{Payload: map[string]any{"sev": "CRIT"}})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if got != "[CRIT] alert" {
+		t.Errorf("got %q, want %q", got, "[CRIT] alert")
+	}
+
+	// The required "message" field is the case that 500s on a collision.
+	sm := mustSet(t, map[string]string{"message": "body:{{ .payload.x }}"})
+	mt, err := sm.Compile("message", `{{ template "message" . }}`)
+	if err != nil {
+		t.Fatalf("Compile message: %v", err)
+	}
+	if got, err := mt.Render(render.Data{Payload: map[string]any{"x": "1"}}); err != nil || got != "body:1" {
+		t.Errorf("message render = %q, %v; want body:1", got, err)
+	}
+}
+
+func TestSetReservedNamesRejected(t *testing.T) {
+	for _, name := range []string{"_chaski_root", "_chaski_field"} {
+		if _, err := render.NewSet(map[string]string{name: "x"}); err == nil {
+			t.Errorf("NewSet with reserved name %q = nil error, want rejection", name)
+		}
+	}
+	// The app name itself is not reserved — operators may use it as a snippet.
+	if _, err := render.NewSet(map[string]string{"chaski": "x"}); err != nil {
+		t.Errorf(`NewSet with snippet "chaski" = %v, want ok`, err)
+	}
+}
+
+func TestSetIncludeUnknownErrorsAtRender(t *testing.T) {
+	s := mustSet(t, nil)
+	tpl, err := s.Compile("title", `{{ include "nope" . }}`)
+	if err != nil {
+		t.Fatalf("Compile: %v", err)
+	}
+	if _, err := tpl.Render(render.Data{}); err == nil {
+		t.Error("include of an undefined template = nil error, want a render error")
+	}
+}
+
+// TestSetConcurrentRender locks in the parse-once / execute-concurrently
+// contract: one compiled template (with a snippet + include path) rendered from
+// many goroutines must be race-free under `go test -race`.
+func TestSetConcurrentRender(t *testing.T) {
+	s := mustSet(t, map[string]string{"label": "[{{ .payload.lvl }}]"})
+	tpl, err := s.Compile("title", `{{ template "label" . }} {{ include "label" . }}`)
+	if err != nil {
+		t.Fatalf("Compile: %v", err)
+	}
+	var wg sync.WaitGroup
+	for range 50 {
+		wg.Go(func() {
+			if got, err := tpl.Render(render.Data{Payload: map[string]any{"lvl": "I"}}); err != nil || got != "[I] [I]" {
+				t.Errorf("concurrent render = %q, %v", got, err)
+			}
+		})
+	}
+	wg.Wait()
 }
 
 func TestSetUnknownTemplateErrorsAtRender(t *testing.T) {
