@@ -30,6 +30,13 @@ func main() {
 	}
 	r.Mapper = customTypes
 
+	// Field doc comments become JSON Schema descriptions (editor tooltips), so the
+	// Go source stays the single source of truth for what each field means.
+	if err := r.AddGoComments("github.com/home-operations/chaski", "./internal/config"); err != nil {
+		fmt.Fprintln(os.Stderr, "schema: comments:", err)
+		os.Exit(1)
+	}
+
 	schema := r.Reflect(&config.RouteConfig{})
 
 	// A Target is an externally-tagged union: exactly one of apprise|http. Struct

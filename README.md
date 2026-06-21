@@ -311,19 +311,27 @@ Attachments are not forwarded.
 Routes and targets are loaded from `CHASKI_CONFIG`; operational settings come
 from the environment:
 
-| Variable                 | Default               | Description                                    |
-| ------------------------ | --------------------- | ---------------------------------------------- |
-| `CHASKI_CONFIG`          | `/config/chaski.yaml` | Route config file or `config.d` directory      |
-| `CHASKI_WEBHOOK_TOKEN`   | _(none)_              | Optional inbound bearer token; unset = no auth |
-| `CHASKI_PORT`            | `8080`                | Webhook listener                               |
-| `CHASKI_METRICS_PORT`    | `8081`                | Metrics + health listener                      |
-| `CHASKI_MAX_BODY_BYTES`  | `1048576`             | Inbound body size cap                          |
-| `CHASKI_REQUEST_TIMEOUT` | `15s`                 | Whole-request deadline                         |
-| `CHASKI_RETRY_ATTEMPTS`  | `3`                   | Default per-target retry attempts              |
-| `CHASKI_RETRY_BACKOFF`   | `200ms`               | Default retry backoff (exponential)            |
-| `CHASKI_SMTP_ENABLED`    | `false`               | Enable the SMTP ingestion listener             |
-| `CHASKI_SMTP_PORT`       | `8025`                | SMTP listener port (when enabled)              |
-| `CHASKI_SMTP_AUTH`       | _(none)_              | `user:password,…` list; set ⇒ require AUTH     |
+| Variable                        | Default               | Description                                              |
+| ------------------------------- | --------------------- | -------------------------------------------------------- |
+| `CHASKI_CONFIG`                 | `/config/chaski.yaml` | Route config file or `config.d` directory                |
+| `CHASKI_WEBHOOK_TOKEN`          | _(none)_              | Optional inbound bearer token; unset = no auth           |
+| `CHASKI_PORT`                   | `8080`                | Webhook listener (`POST /hooks/{route}`)                 |
+| `CHASKI_MAX_BODY_BYTES`         | `1048576`             | Inbound body size cap                                    |
+| `CHASKI_REQUEST_TIMEOUT`        | `15s`                 | Whole-request deadline (overridden per target `timeout`) |
+| `CHASKI_RETRY_ATTEMPTS`         | `3`                   | Default per-target retry attempts (target `retry` wins)  |
+| `CHASKI_RETRY_BACKOFF`          | `200ms`               | Default retry backoff (overridden per target `retry`)    |
+| `CHASKI_METRICS_ENABLED`        | `true`                | Serve `/metrics` + `/healthz` on the metrics port        |
+| `CHASKI_METRICS_PORT`           | `8081`                | Metrics + health listener                                |
+| `CHASKI_LOG_LEVEL`              | `info`                | `debug` \| `info` \| `warn` \| `error`                   |
+| `CHASKI_LOG_FORMAT`             | `json`                | slog handler: `json` or `text`                           |
+| `CHASKI_DISABLE_REQUEST_LOGS`   | `false`               | Silence the per-request access log                       |
+| `CHASKI_SHUTDOWN_TIMEOUT`       | `15s`                 | Graceful drain bound on SIGINT/SIGTERM                   |
+| `CHASKI_SMTP_ENABLED`           | `false`               | Enable the SMTP ingestion listener                       |
+| `CHASKI_SMTP_PORT`              | `8025`                | SMTP listener port (when enabled)                        |
+| `CHASKI_SMTP_AUTH`              | _(none)_              | `user:password,…` list; set ⇒ require AUTH               |
+| `CHASKI_SMTP_HOSTNAME`          | `chaski`              | Name announced in the SMTP greeting                      |
+| `CHASKI_SMTP_MAX_MESSAGE_BYTES` | `1048576`             | Inbound SMTP message size cap                            |
+| `CHASKI_SMTP_MAX_RECIPIENTS`    | `50`                  | Max recipients per SMTP message                          |
 
 A JSON Schema for the route config is published at
 [`config.schema.json`](config.schema.json) — point your editor's YAML language

@@ -149,10 +149,16 @@ func printSummary(w io.Writer, path string, rc *config.RouteConfig) {
 	for _, name := range slices.Sorted(maps.Keys(rc.Routes)) {
 		r := rc.Routes[name]
 		p("  route %-24s (%s) → %v\n", name, r.Source, targetNames(r.Target))
+		if r.Description != "" {
+			p("      %s\n", r.Description)
+		}
 	}
 	for _, name := range slices.Sorted(maps.Keys(rc.Targets)) {
 		t := rc.Targets[name]
 		p("  target %-23s (%s) [%s]\n", name, t.Source, t.Kind())
+		if t.Description != "" {
+			p("      %s\n", t.Description)
+		}
 	}
 	for _, name := range slices.Sorted(maps.Keys(rc.Templates)) {
 		p("  template %-21s (%s)\n", name, rc.TemplateSource(name))
