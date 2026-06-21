@@ -195,6 +195,7 @@ func (k Kind) String() string {
 type Result struct {
 	Status  int
 	Kind    Kind
+	Reason  string           // low-cardinality sub-reason for a Skipped result: "gate" or "no_targets"
 	Plan    *Plan            // set for a dry run
 	Err     error            // gate/render/relay error (for logging)
 	Dropped map[string]error // optional fields dropped at render (for logging)
@@ -212,7 +213,12 @@ func (r *Route) Handle(ctx context.Context, in Input) Result {
 		return Result{Status: http.StatusInternalServerError, Kind: GateError, Err: err}
 	}
 	if !fired {
-		return Result{Status: r.skipState, Kind: Skipped}
+		// A dry run still answers "why" — return a plan marked not-fired rather
+		// than a bodyless skip, since a false gate is the most common non-action.
+		if in.DryRun {
+			return Result{Status: http.StatusOK, Kind: DryRunned, Plan: &Plan{Route: r.name, Fired: false}}
+		}
+		return Result{Status: r.skipState, Kind: Skipped, Reason: "gate"}
 	}
 
 	rr, err := r.renderAll(in)
@@ -229,7 +235,7 @@ func (r *Route) Handle(ctx context.Context, in Input) Result {
 		return Result{Status: http.StatusBadGateway, Kind: RelayError, Err: err, Dropped: rr.dropped}
 	}
 	if sent == 0 {
-		return Result{Status: r.skipState, Kind: Skipped, Dropped: rr.dropped}
+		return Result{Status: r.skipState, Kind: Skipped, Reason: "no_targets", Dropped: rr.dropped}
 	}
 	return Result{Status: r.okStatus, Kind: Relayed, Dropped: rr.dropped}
 }

@@ -84,8 +84,30 @@ func TestGateSkips(t *testing.T) {
 	if res.Kind != relay.Skipped || res.Status != 204 {
 		t.Errorf("kind=%v status=%d, want Skipped 204", res.Kind, res.Status)
 	}
+	if res.Reason != "gate" {
+		t.Errorf("skip reason = %q, want gate", res.Reason)
+	}
 	if fn.calls != 0 {
 		t.Errorf("notifier called %d times on a skip", fn.calls)
+	}
+}
+
+func TestDryRunGateFalseReturnsPlan(t *testing.T) {
+	fn := &fakeNotifier{}
+	r := route(t, engine(t, apprise1, fn))
+
+	res := handle(r, map[string]any{"status": "resolved"}, true) // gate is false
+	if res.Kind != relay.DryRunned || res.Status != 200 || res.Plan == nil {
+		t.Fatalf("kind=%v status=%d plan=%v, want DryRunned 200 with a plan", res.Kind, res.Status, res.Plan)
+	}
+	if res.Plan.Fired {
+		t.Error("Plan.Fired = true, want false for a gate-false dry run")
+	}
+	if len(res.Plan.Targets) != 0 {
+		t.Errorf("Plan.Targets = %+v, want empty when the gate is false", res.Plan.Targets)
+	}
+	if fn.calls != 0 {
+		t.Errorf("gate-false dry run sent %d notifications", fn.calls)
 	}
 }
 
@@ -130,6 +152,9 @@ routes:
 	res := handle(r, map[string]any{}, false)
 	if res.Kind != relay.Skipped || fn.calls != 0 {
 		t.Errorf("empty apprise body: kind=%v calls=%d, want Skipped 0", res.Kind, fn.calls)
+	}
+	if res.Reason != "no_targets" {
+		t.Errorf("skip reason = %q, want no_targets", res.Reason)
 	}
 }
 

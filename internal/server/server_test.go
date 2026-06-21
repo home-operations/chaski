@@ -181,6 +181,64 @@ func TestDryRunReturnsPlanWithoutSending(t *testing.T) {
 	}
 }
 
+func TestResultHeader(t *testing.T) {
+	srv := newServer(engineWithRoute(t, &fakeNotifier{}), "")
+
+	rec := do(srv, http.MethodPost, "/notify/alertmanager", `{"status":"firing"}`, map[string]string{"Content-Type": jsonCT})
+	if got := rec.Header().Get("X-Chaski-Result"); got != "relayed" {
+		t.Errorf("relayed header = %q, want relayed", got)
+	}
+	rec = do(srv, http.MethodPost, "/notify/alertmanager", `{"status":"resolved"}`, map[string]string{"Content-Type": jsonCT})
+	if got := rec.Header().Get("X-Chaski-Result"); got != "skipped:gate" {
+		t.Errorf("gate-false header = %q, want skipped:gate", got)
+	}
+}
+
+func TestDryRunGateFalseReturnsPlan(t *testing.T) {
+	srv := newServer(engineWithRoute(t, &fakeNotifier{}), "")
+	rec := do(srv, http.MethodPost, "/notify/alertmanager?dryRun=1", `{"status":"resolved"}`, map[string]string{"Content-Type": jsonCT})
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (gate-false dry run still previews)", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), `"fired":false`) {
+		t.Errorf("gate-false dry-run body = %s, want fired:false", rec.Body.String())
+	}
+}
+
+func TestRenderErrorSurfacesCause(t *testing.T) {
+	const y = `
+targets: { po: { apprise: { url: 'pover://u@t/' } } }
+routes:
+  r: { target: po, message: '{{ .payload.x.Bad }}' }
+`
+	file := filepath.Join(t.TempDir(), "c.yaml")
+	if err := os.WriteFile(file, []byte(y), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc, err := config.LoadRouteConfig(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := relay.Build(rc, &config.Config{RetryAttempts: 1, RetryBackoff: time.Millisecond}, relay.Options{Notifier: &fakeNotifier{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := newServer(e, "")
+
+	rec := do(srv, http.MethodPost, "/notify/r", `{"x":"scalar"}`, map[string]string{"Content-Type": jsonCT})
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "message") || strings.Contains(body, "Internal Server Error") {
+		t.Errorf("500 body = %s, want the render cause (not the generic text)", body)
+	}
+	if got := rec.Header().Get("X-Chaski-Result"); got != "render_error" {
+		t.Errorf("header = %q, want render_error", got)
+	}
+}
+
 func TestUnsupportedContentTypeIs400(t *testing.T) {
 	srv := newServer(engineWithRoute(t, &fakeNotifier{}), "")
 	rec := do(srv, http.MethodPost, "/notify/alertmanager", "hello", map[string]string{"Content-Type": "text/plain"})
