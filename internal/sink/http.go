@@ -52,7 +52,7 @@ func (s *httpSink) Name() string { return s.name }
 func (s *httpSink) Kind() string { return kindHTTP }
 
 func (s *httpSink) Send(ctx context.Context, msg Message) error {
-	return withRetry(ctx, s.retry, func(ctx context.Context) error {
+	return deliver(ctx, s.name, s.Kind(), s.retry, func(ctx context.Context) error {
 		return s.do(ctx, msg)
 	})
 }

@@ -279,6 +279,18 @@ A JSON Schema for the route config is published at
 server at it for completion and validation. The metrics port serves
 `GET /metrics` (Prometheus) and `GET /healthz`.
 
+Key metrics:
+
+| Series                                       | Labels                      | Meaning                                            |
+| -------------------------------------------- | --------------------------- | -------------------------------------------------- |
+| `chaski_relays_total`                        | `route`, `result`           | Relay outcomes per route                           |
+| `chaski_target_sends_total`                  | `target`, `kind`, `outcome` | Per-target sends (`success`/`permanent`/`retryable`) |
+| `chaski_target_retries_total`                | `target`, `kind`            | Retried send attempts per target                   |
+| `chaski_webhook_rejected_total`              | `reason`                    | Inbound rejects (token/signature/body/…)           |
+| `chaski_smtp_rejected_total`                 | `reason`                    | SMTP rejects (`auth`/`recipient`)                  |
+| `chaski_http_request_duration_seconds`       | `method`                    | Inbound request latency                            |
+| `chaski_build_info`                          | `version`, `commit`         | Running build (value `1`)                          |
+
 ## Deployment
 
 A Helm chart is published as an OCI artifact and runs the distroless

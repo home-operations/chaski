@@ -69,7 +69,7 @@ func (s *appriseSink) Name() string { return s.name }
 func (s *appriseSink) Kind() string { return kindApprise }
 
 func (s *appriseSink) Send(ctx context.Context, msg Message) error {
-	return withRetry(ctx, s.retry, func(ctx context.Context) error {
+	return deliver(ctx, s.name, s.Kind(), s.retry, func(ctx context.Context) error {
 		return s.notifier.Send(ctx, s.url, msg.Body, msg.Title, msg.Params)
 	})
 }

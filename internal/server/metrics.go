@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"runtime"
 	"strconv"
 
 	"github.com/home-operations/chaski/internal/relay"
@@ -26,7 +27,26 @@ var (
 		Name: "chaski_relays_total",
 		Help: "Relay outcomes, by route and result (relayed/skipped/dryrun/*_error).",
 	}, []string{"route", "result"})
+
+	// webhookRejected counts inbound requests refused before relay, by reason
+	// (the why behind a 4xx, which the status-class label can't convey). Mirrors
+	// the SMTP path's chaski_smtp_rejected_total.
+	webhookRejected = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "chaski_webhook_rejected_total",
+		Help: "Inbound webhook requests rejected before relay, by reason.",
+	}, []string{"reason"})
+
+	buildInfo = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "chaski_build_info",
+		Help: "Build metadata; the value is always 1, the version/commit/goversion are labels.",
+	}, []string{"version", "commit", "goversion"})
 )
+
+// RecordBuildInfo sets the chaski_build_info gauge from the stamped build vars,
+// so the running build is queryable from Prometheus, not just the boot log.
+func RecordBuildInfo(version, commit string) {
+	buildInfo.WithLabelValues(version, commit, runtime.Version()).Set(1)
+}
 
 // observeRelay records a relay outcome and logs operator-fault errors and any
 // dropped optional fields. Payload bodies and rendered secrets/URLs are
