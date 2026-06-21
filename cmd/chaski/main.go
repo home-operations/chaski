@@ -87,6 +87,7 @@ func run() error {
 		"commit", commit,
 		"http_port", cfg.HTTPPort,
 		"metrics_port", cfg.MetricsPort,
+		"smtp_enabled", cfg.SMTPEnabled,
 		"routes", engine.RouteCount(),
 		"gomaxprocs", runtime.GOMAXPROCS(0),
 	)

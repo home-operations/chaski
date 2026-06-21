@@ -56,8 +56,27 @@ type Config struct {
 	// ShutdownTimeout bounds the graceful drain on SIGINT/SIGTERM.
 	ShutdownTimeout time.Duration `env:"CHASKI_SHUTDOWN_TIMEOUT" envDefault:"15s"`
 
+	// SMTPEnabled starts an optional SMTP listener that turns received mail into
+	// a relay, selecting the route by the recipient localpart (sonarr@... → the
+	// route named "sonarr"). Off by default: it is an inbound relay path, so it
+	// is opted into explicitly.
+	SMTPEnabled bool `env:"CHASKI_SMTP_ENABLED" envDefault:"false"`
+	SMTPPort    int  `env:"CHASKI_SMTP_PORT" envDefault:"8025"`
+	// SMTPAuth is an optional "user:password" list (comma-separated). When set,
+	// SMTP AUTH (PLAIN/LOGIN) is required; when empty the listener is
+	// unauthenticated, intended for a trusted cluster network.
+	SMTPAuth string `env:"CHASKI_SMTP_AUTH"`
+	// SMTPHostname is the name the server announces in its SMTP greeting.
+	SMTPHostname string `env:"CHASKI_SMTP_HOSTNAME" envDefault:"chaski"`
+	// SMTPMaxMessageBytes caps an inbound message; SMTPMaxRecipients caps the
+	// RCPTs per message.
+	SMTPMaxMessageBytes int64 `env:"CHASKI_SMTP_MAX_MESSAGE_BYTES" envDefault:"1048576"`
+	SMTPMaxRecipients   int   `env:"CHASKI_SMTP_MAX_RECIPIENTS" envDefault:"50"`
+
 	// LogLevel is parsed from CHASKI_LOG_LEVEL (debug|info|warn|error) in Load.
 	LogLevel slog.Level `env:"-"`
+	// SMTPUsers is parsed from SMTPAuth in Load (username → password).
+	SMTPUsers map[string]string `env:"-"`
 }
 
 // Load reads the configuration from the environment, applies defaults, derives
@@ -76,10 +95,40 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("config: invalid CHASKI_LOG_LEVEL %q: %w", level, err)
 	}
 
+	users, err := parseSMTPAuth(cfg.SMTPAuth)
+	if err != nil {
+		return nil, err
+	}
+	cfg.SMTPUsers = users
+
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
 	return cfg, nil
+}
+
+// parseSMTPAuth parses CHASKI_SMTP_AUTH ("user:password,user2:password2") into a
+// username→password map. An empty string yields a nil map (auth disabled). The
+// password may contain ':' (only the first separates user from password).
+func parseSMTPAuth(raw string) (map[string]string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	users := map[string]string{}
+	for pair := range strings.SplitSeq(raw, ",") {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+		user, pass, ok := strings.Cut(pair, ":")
+		user = strings.TrimSpace(user)
+		if !ok || user == "" || pass == "" {
+			return nil, fmt.Errorf("config: CHASKI_SMTP_AUTH entry %q must be user:password", pair)
+		}
+		users[user] = pass
+	}
+	return users, nil
 }
 
 func (c *Config) validate() error {
@@ -105,6 +154,25 @@ func (c *Config) validate() error {
 	}
 	if c.RequestTimeout <= 0 {
 		return fmt.Errorf("config: CHASKI_REQUEST_TIMEOUT must be > 0, got %s", c.RequestTimeout)
+	}
+	if c.SMTPEnabled {
+		if err := validatePort(c.SMTPPort, "CHASKI_SMTP_PORT"); err != nil {
+			return err
+		}
+		if c.SMTPPort == c.HTTPPort {
+			return fmt.Errorf("config: CHASKI_SMTP_PORT and CHASKI_PORT must differ (both %d)", c.SMTPPort)
+		}
+		if c.MetricsEnabled && c.SMTPPort == c.MetricsPort {
+			return fmt.Errorf("config: CHASKI_SMTP_PORT and CHASKI_METRICS_PORT must differ (both %d)", c.SMTPPort)
+		}
+		if c.SMTPMaxMessageBytes < 1 {
+			// 0 would make go-smtp treat the message size as unbounded, removing
+			// the only in-memory read cap; require an explicit positive limit.
+			return fmt.Errorf("config: CHASKI_SMTP_MAX_MESSAGE_BYTES must be >= 1, got %d", c.SMTPMaxMessageBytes)
+		}
+		if c.SMTPMaxRecipients < 1 {
+			return fmt.Errorf("config: CHASKI_SMTP_MAX_RECIPIENTS must be >= 1, got %d", c.SMTPMaxRecipients)
+		}
 	}
 	return nil
 }

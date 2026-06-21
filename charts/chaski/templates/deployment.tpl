@@ -85,6 +85,25 @@ spec:
                   name: {{ .Values.auth.existingSecret | default (include "chaski.fullname" .) }}
                   key: {{ if .Values.auth.existingSecret }}{{ .Values.auth.existingSecretKey }}{{ else }}token{{ end }}
             {{- end }}
+            {{- if .Values.config.smtpEnabled }}
+            - name: CHASKI_SMTP_ENABLED
+              value: "true"
+            - name: CHASKI_SMTP_PORT
+              value: {{ .Values.config.smtpPort | quote }}
+            - name: CHASKI_SMTP_HOSTNAME
+              value: {{ .Values.config.smtpHostname | quote }}
+            - name: CHASKI_SMTP_MAX_MESSAGE_BYTES
+              value: {{ .Values.config.smtpMaxMessageBytes | int64 | quote }}
+            - name: CHASKI_SMTP_MAX_RECIPIENTS
+              value: {{ .Values.config.smtpMaxRecipients | quote }}
+            {{- if and .Values.auth.smtpAuth (not .Values.auth.existingSecret) }}
+            - name: CHASKI_SMTP_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chaski.fullname" . }}
+                  key: smtpAuth
+            {{- end }}
+            {{- end }}
             {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
               value: {{ tpl (toString $v) $ | quote }}
@@ -103,6 +122,11 @@ spec:
             {{- if .Values.config.metricsEnabled }}
             - name: metrics
               containerPort: {{ .Values.config.metricsPort }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.config.smtpEnabled }}
+            - name: smtp
+              containerPort: {{ .Values.config.smtpPort }}
               protocol: TCP
             {{- end }}
           {{- with .Values.startupProbe }}

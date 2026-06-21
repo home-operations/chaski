@@ -27,3 +27,9 @@ spec:
       targetPort: metrics
       protocol: TCP
     {{- end }}
+    {{- if .Values.config.smtpEnabled }}
+    - name: smtp
+      port: {{ .Values.config.smtpPort }}
+      targetPort: smtp
+      protocol: TCP
+    {{- end }}

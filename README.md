@@ -19,6 +19,8 @@ plain HTTP request.
   `headers` are rendered per request with [sprout](https://github.com/go-sprout/sprout)
   helpers and `{{ env "…" }}` (no filesystem or network access).
 - **Two target kinds** — an apprise notification or a generic HTTP forward.
+- **SMTP ingestion (optional)** — accept notifications as email so appliances
+  that can only send mail reach the same routes; off by default.
 - **Signature verification** — optional per-route HMAC or shared-token check
   over the raw body, with a built-in `github` preset.
 - **Layered config** — a single YAML file or a `config.d` directory of
@@ -201,6 +203,45 @@ strings (`trunc`, `toTitleCase`, `replace`, `trimAll`), `dict`/`dig`/`pluck`,
 filesystem and network helpers are excluded. See the
 [sprout registries](https://docs.atom.codes/sprout/registries) for the full set.
 
+## SMTP ingestion
+
+chaski can also accept notifications over **SMTP**, so devices that can only send
+email (printers, NAS boxes, UPSes, legacy monitoring) reach the same routes. It is
+**off by default**; enable it with `CHASKI_SMTP_ENABLED=true`.
+
+The recipient's localpart selects the route: mail to `sonarr@chaski` is handled by
+the route named `sonarr`. An unknown recipient is rejected, so the listener is never
+an open relay. The parsed message is exposed to `whenExpr` and templates as `payload`:
+
+| Field                           | Meaning                                     |
+| ------------------------------- | ------------------------------------------- |
+| `payload.subject`               | decoded `Subject`                           |
+| `payload.from`                  | first `From` address                        |
+| `payload.to`                    | the recipient that selected this route      |
+| `payload.body`                  | the text part, falling back to HTML         |
+| `payload.text` / `payload.html` | the individual parts                        |
+
+```yaml
+routes:
+  sonarr:
+    target: pushover
+    title: "{{ .payload.subject }}"
+    message: "{{ .payload.body }}"
+```
+
+Send it with any mail client:
+
+```sh
+swaks --server chaski:8025 --to sonarr@chaski --from sensor@lan \
+  --header "Subject: Disk degraded" --body "rebuild started"
+```
+
+**Security.** v1 has no TLS, so run the listener on a trusted network (a ClusterIP
+behind a NetworkPolicy). Set `CHASKI_SMTP_AUTH` to a `user:password,…` list to require
+SMTP AUTH (PLAIN/LOGIN); with no TLS, those credentials travel in clear text. Per-route
+`verify` (HMAC/token) does not apply to SMTP; AUTH and network isolation are the gate.
+Attachments are not forwarded.
+
 ## Configuration
 
 `whenExpr` is CEL; every other field is a Go template. Both expose the same
@@ -219,6 +260,9 @@ from the environment:
 | `CHASKI_REQUEST_TIMEOUT` | `15s`                 | Whole-request deadline                         |
 | `CHASKI_RETRY_ATTEMPTS`  | `3`                   | Default per-target retry attempts              |
 | `CHASKI_RETRY_BACKOFF`   | `200ms`               | Default retry backoff (exponential)            |
+| `CHASKI_SMTP_ENABLED`    | `false`               | Enable the SMTP ingestion listener             |
+| `CHASKI_SMTP_PORT`       | `8025`                | SMTP listener port (when enabled)              |
+| `CHASKI_SMTP_AUTH`       | _(none)_              | `user:password,…` list; set ⇒ require AUTH     |
 
 A JSON Schema for the route config is published at
 [`config.schema.json`](config.schema.json) — point your editor's YAML language

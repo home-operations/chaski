@@ -12,6 +12,7 @@ import (
 
 	"github.com/home-operations/chaski/internal/config"
 	"github.com/home-operations/chaski/internal/relay"
+	"github.com/home-operations/chaski/internal/smtp"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -62,6 +63,12 @@ func (s *Server) Run(ctx context.Context) error {
 		g.Go(func() error { return serve(metricsSrv, "metrics", s.log) })
 	}
 
+	var smtpSrv *smtp.Server
+	if s.cfg.SMTPEnabled {
+		smtpSrv = smtp.New(s.cfg, s.engine, s.log, s.observeRelay)
+		g.Go(smtpSrv.ListenAndServe)
+	}
+
 	g.Go(func() error {
 		<-gctx.Done()
 		s.log.Info("shutting down")
@@ -69,6 +76,7 @@ func (s *Server) Run(ctx context.Context) error {
 		defer cancel()
 		shutdown(sctx, webhookSrv)
 		shutdown(sctx, metricsSrv)
+		smtpSrv.Shutdown(sctx)
 		return nil
 	})
 
