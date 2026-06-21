@@ -40,18 +40,19 @@ func TestLoadDefaults(t *testing.T) {
 
 func TestLoadErrors(t *testing.T) {
 	tests := map[string]map[string]string{
-		"invalid log level": {"CHASKI_LOG_LEVEL": "bogus"},
-		"port out of range": {"CHASKI_PORT": "0"},
-		"metrics port high": {"CHASKI_METRICS_PORT": "70000"},
-		"ports collide":     {"CHASKI_PORT": "9000", "CHASKI_METRICS_PORT": "9000"},
-		"bad log format":    {"CHASKI_LOG_FORMAT": "yaml"},
-		"negative body":     {"CHASKI_MAX_BODY_BYTES": "-1"},
-		"zero attempts":     {"CHASKI_RETRY_ATTEMPTS": "0"},
-		"zero timeout":      {"CHASKI_REQUEST_TIMEOUT": "0s"},
-		"smtp vs http port": {"CHASKI_SMTP_ENABLED": "true", "CHASKI_SMTP_PORT": "8080"},
-		"smtp vs metrics":   {"CHASKI_SMTP_ENABLED": "true", "CHASKI_SMTP_PORT": "8081"},
-		"smtp zero rcpts":   {"CHASKI_SMTP_ENABLED": "true", "CHASKI_SMTP_MAX_RECIPIENTS": "0"},
-		"smtp bad auth":     {"CHASKI_SMTP_AUTH": "missingcolon"},
+		"invalid log level":  {"CHASKI_LOG_LEVEL": "bogus"},
+		"port out of range":  {"CHASKI_PORT": "0"},
+		"metrics port high":  {"CHASKI_METRICS_PORT": "70000"},
+		"ports collide":      {"CHASKI_PORT": "9000", "CHASKI_METRICS_PORT": "9000"},
+		"bad log format":     {"CHASKI_LOG_FORMAT": "yaml"},
+		"negative body":      {"CHASKI_MAX_BODY_BYTES": "-1"},
+		"zero attempts":      {"CHASKI_RETRY_ATTEMPTS": "0"},
+		"zero timeout":       {"CHASKI_REQUEST_TIMEOUT": "0s"},
+		"smtp vs http port":  {"CHASKI_SMTP_ENABLED": "true", "CHASKI_SMTP_PORT": "8080"},
+		"smtp vs metrics":    {"CHASKI_SMTP_ENABLED": "true", "CHASKI_SMTP_PORT": "8081"},
+		"smtp zero rcpts":    {"CHASKI_SMTP_ENABLED": "true", "CHASKI_SMTP_MAX_RECIPIENTS": "0"},
+		"smtp zero msgbytes": {"CHASKI_SMTP_ENABLED": "true", "CHASKI_SMTP_MAX_MESSAGE_BYTES": "0"},
+		"smtp bad auth":      {"CHASKI_SMTP_AUTH": "missingcolon"},
 	}
 	for name, envs := range tests {
 		t.Run(name, func(t *testing.T) {

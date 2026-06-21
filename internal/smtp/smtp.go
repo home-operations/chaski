@@ -53,8 +53,8 @@ type Server struct {
 // network); credentials therefore travel in the clear, so keep the listener
 // internal.
 func New(cfg *config.Config, engine *relay.Engine, log *slog.Logger, observe Observer) *Server {
-	// baseCtx parents every in-flight relay so Shutdown can cancel work that is
-	// mid-flight rather than letting it run detached past the drain window.
+	// baseCtx parents every in-flight relay so that, once the drain window
+	// closes, any relay still running is cancelled rather than left detached.
 	baseCtx, cancel := context.WithCancel(context.Background())
 	be := &backend{
 		engine:       engine,
@@ -87,13 +87,14 @@ func (s *Server) ListenAndServe() error {
 	return nil
 }
 
-// Shutdown cancels in-flight relays and drains the listener (nil-safe, like the
-// HTTP drain).
+// Shutdown drains the listener, letting in-flight relays finish within ctx's
+// deadline (like the HTTP drain), then cancels baseCtx as a backstop for any
+// relay still running once the window closes. Nil-safe.
 func (s *Server) Shutdown(ctx context.Context) {
 	if s == nil {
 		return
 	}
-	s.cancel()
+	defer s.cancel()
 	_ = s.inner.Shutdown(ctx)
 }
 

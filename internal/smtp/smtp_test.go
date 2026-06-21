@@ -25,24 +25,33 @@ type fakeNotifier struct {
 	err    error // when set, Send fails (drives a relay error)
 }
 
-func (f *fakeNotifier) Send(_ context.Context, _, body, _ string, _ map[string]string) error {
+func (f *fakeNotifier) Send(_ context.Context, targetURL, body, _ string, _ map[string]string) error {
 	f.mu.Lock()
 	f.calls++
 	f.bodies = append(f.bodies, body)
 	err := f.err
 	f.mu.Unlock()
+	if strings.Contains(targetURL, "fail") { // the "broken" route's target always errors
+		return context.DeadlineExceeded
+	}
 	return err
 }
 
 func discardLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }
 
 const routeYAML = `
-targets: { po: { apprise: { url: 'pover://u@t/' } } }
+targets:
+  po: { apprise: { url: 'pover://u@t/' } }
+  failtarget: { apprise: { url: 'pover://u@fail/' } }
 routes:
   alerts:
     target: po
     whenExpr: 'payload.subject != ""'
     title: '{{ .payload.subject }}'
+    message: '{{ .payload.body }}'
+  broken:
+    target: failtarget
+    whenExpr: 'payload.subject != ""'
     message: '{{ .payload.body }}'
 `
 
@@ -144,6 +153,18 @@ func TestParseEmailDecodesSubjectAndSkipsAttachment(t *testing.T) {
 	}
 }
 
+func TestParseEmailNonMIMEFallback(t *testing.T) {
+	// A blob with no header/body separator fails MIME parsing, exercising the
+	// net/mail parsePlain fallback (whole body becomes text).
+	m := parseEmail([]byte("not an email, no headers at all"), discardLog())
+	if !strings.Contains(m.text, "not an email") {
+		t.Errorf("text = %q, want the raw blob via the parsePlain fallback", m.text)
+	}
+	if m.from != "" || m.subject != "" {
+		t.Errorf("from=%q subject=%q, want empty for a headerless blob", m.from, m.subject)
+	}
+}
+
 func TestSessionRcptResolvesAndRejects(t *testing.T) {
 	s := &session{be: testBackend(t, &fakeNotifier{}), authed: true}
 	if err := s.Rcpt("alerts@chaski", nil); err != nil {
@@ -191,6 +212,23 @@ func TestSessionDedupesRepeatRcpts(t *testing.T) {
 	}
 	if n.calls != 1 {
 		t.Errorf("notifier calls = %d, want 1 (no fan-out amplification)", n.calls)
+	}
+}
+
+func TestSessionDataMixedOutcomeAccepts(t *testing.T) {
+	// alerts relays OK, broken's downstream always fails. Because one recipient
+	// was delivered, the whole message is accepted (250/nil) so a retry can't
+	// duplicate the delivered one. This pins `failed && !delivered`.
+	n := &fakeNotifier{}
+	s := &session{be: testBackend(t, n), authed: true}
+	if err := s.Rcpt("alerts@chaski", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Rcpt("broken@chaski", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Data(strings.NewReader("Subject: x\r\n\r\nbody")); err != nil {
+		t.Fatalf("Data = %v, want nil (250) when one recipient was delivered", err)
 	}
 }
 
