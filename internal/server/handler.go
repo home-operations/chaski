@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -70,7 +69,7 @@ func (s *Server) handleNotify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, contentType, err := decodePayload(r.Header.Get("Content-Type"), raw)
+	payload, contentType, err := relay.DecodeBody(r.Header.Get("Content-Type"), raw)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -136,34 +135,6 @@ func inboundToken(r *http.Request) string {
 	return r.URL.Query().Get("token")
 }
 
-// decodePayload decodes the body into payload by content-type: JSON (the default
-// when the header is absent) or form-urlencoded. Any other type → error (→ 400).
-func decodePayload(contentType string, raw []byte) (any, string, error) {
-	media := contentType
-	if i := strings.IndexByte(media, ';'); i >= 0 {
-		media = media[:i]
-	}
-	switch strings.TrimSpace(media) {
-	case "", "application/json":
-		if len(strings.TrimSpace(string(raw))) == 0 {
-			return map[string]any{}, contentType, nil
-		}
-		var p any
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, contentType, fmt.Errorf("invalid JSON body: %w", err)
-		}
-		return p, contentType, nil
-	case "application/x-www-form-urlencoded":
-		vals, err := url.ParseQuery(string(raw))
-		if err != nil {
-			return nil, contentType, fmt.Errorf("invalid form body: %w", err)
-		}
-		return queryToMap(vals), contentType, nil
-	default:
-		return nil, contentType, fmt.Errorf("unsupported content-type %q", media)
-	}
-}
-
 func lowerHeaders(h http.Header) map[string]string {
 	m := make(map[string]string, len(h))
 	for k, v := range h {
@@ -180,24 +151,6 @@ func firstQuery(q url.Values) map[string]string {
 		if len(v) > 0 {
 			m[k] = v[0]
 		}
-	}
-	return m
-}
-
-// queryToMap turns url.Values into payload: a single value stays a string, a
-// repeated key becomes a []any.
-func queryToMap(vals url.Values) map[string]any {
-	m := make(map[string]any, len(vals))
-	for k, v := range vals {
-		if len(v) == 1 {
-			m[k] = v[0]
-			continue
-		}
-		s := make([]any, len(v))
-		for i, e := range v {
-			s[i] = e
-		}
-		m[k] = s
 	}
 	return m
 }
