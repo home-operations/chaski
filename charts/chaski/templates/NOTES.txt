@@ -16,7 +16,11 @@ chaski {{ .Chart.AppVersion }} is deployed as {{ include "chaski.fullname" . }} 
 
 📧 SMTP ingestion is enabled on port {{ .Values.config.smtpPort }}. Send mail to
    <route>@{{ .Values.config.smtpHostname }} (the recipient localpart selects the route).
-   {{- if not .Values.auth.smtpAuth }}
+   {{- if and .Values.auth.smtpAuth .Values.auth.existingSecret }}
+   ⚠  auth.smtpAuth is set but IGNORED because auth.existingSecret is in use; the
+      chart will not wire CHASKI_SMTP_AUTH. Supply it via envFrom/extraEnv from your
+      Secret, otherwise SMTP AUTH stays OFF.
+   {{- else if not .Values.auth.smtpAuth }}
    AUTH is off and there is no TLS, so keep this listener on a trusted network.
    {{- end }}
 {{- end }}

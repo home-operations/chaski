@@ -64,6 +64,7 @@ func parseEmail(raw []byte, log *slog.Logger) message {
 			break
 		}
 		if err != nil && !gomsg.IsUnknownCharset(err) {
+			log.Warn("smtp: stopped reading message parts; remaining content dropped", "error", err)
 			break
 		}
 		ih, ok := p.Header.(*gomail.InlineHeader)
