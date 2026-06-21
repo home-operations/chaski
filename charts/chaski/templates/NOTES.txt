@@ -12,6 +12,14 @@ chaski {{ .Chart.AppVersion }} is deployed as {{ include "chaski.fullname" . }} 
    fine for cluster-internal senders. Set one for untrusted callers, or gate a
    route with a `verify` (HMAC/token) block.
 {{- end }}
+{{- if .Values.config.smtpEnabled }}
+
+📧 SMTP ingestion is enabled on port {{ .Values.config.smtpPort }}. Send mail to
+   <route>@{{ .Values.config.smtpHostname }} (the recipient localpart selects the route).
+   {{- if not .Values.auth.smtpAuth }}
+   AUTH is off and there is no TLS, so keep this listener on a trusted network.
+   {{- end }}
+{{- end }}
 
 Send a webhook from inside the cluster (replace the route + token):
 

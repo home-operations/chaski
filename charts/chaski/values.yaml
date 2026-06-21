@@ -54,6 +54,17 @@ config:
   # -- Global default retry base backoff (CHASKI_RETRY_BACKOFF); a target's `retry.backoff` overrides it.
   retryBackoff: 200ms
 
+  # -- Accept notifications over SMTP, relaying by the recipient localpart (sonarr@… → the route named `sonarr`). Off by default — it is an inbound relay path, so opt in explicitly (CHASKI_SMTP_ENABLED). When on, set `auth.smtpAuth` and keep the listener on a trusted network (v1 has no TLS).
+  smtpEnabled: false
+  # -- SMTP listener port (CHASKI_SMTP_PORT); also the container/Service smtp port when enabled.
+  smtpPort: 8025
+  # -- Hostname announced in the SMTP greeting (CHASKI_SMTP_HOSTNAME).
+  smtpHostname: chaski
+  # -- Max inbound message size in bytes (CHASKI_SMTP_MAX_MESSAGE_BYTES).
+  smtpMaxMessageBytes: 1048576
+  # -- Max recipients per message (CHASKI_SMTP_MAX_RECIPIENTS).
+  smtpMaxRecipients: 50
+
   # -- Path chaski reads its config from (CHASKI_CONFIG): a single file, or a directory of `*.yaml` fragments (config.d). The default matches the rendered ConfigMap.
   configPath: /config/chaski.yaml
   # -- Where the config ConfigMap is mounted.
@@ -84,6 +95,8 @@ auth:
   existingSecret: ""
   # -- Key in `existingSecret` holding the webhook token.
   existingSecretKey: token
+  # -- Optional SMTP AUTH credentials as a `user:password,user2:password2` list (CHASKI_SMTP_AUTH), used only when `config.smtpEnabled`. When set, SMTP AUTH (PLAIN/LOGIN) is required and the value is rendered into the chart-managed Secret. With `existingSecret`, supply `CHASKI_SMTP_AUTH` via `envFrom`/`extraEnv` instead. NOTE: v1 has no TLS, so credentials travel in clear text — keep the listener internal.
+  smtpAuth: ""
 
 # -- Extra environment variables as a map (templated). Use for non-secret values referenced by `{{ env "…" }}` in targets, e.g. GOTIFY_HOST.
 env: {}

@@ -5,6 +5,9 @@ go 1.26.4
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/emersion/go-message v0.18.2
+	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
+	github.com/emersion/go-smtp v0.24.0
 	github.com/go-sprout/sprout v1.0.3
 	github.com/google/cel-go v0.28.1
 	github.com/invopop/jsonschema v0.14.0
@@ -26,6 +29,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20260417124207-7d523f7318df // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect

@@ -69,3 +69,44 @@ tests:
               secretKeyRef:
                 name: my-secret
                 key: webhook
+
+  - it: omits SMTP env and port by default
+    template: templates/deployment.tpl
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CHASKI_SMTP_ENABLED
+            value: "true"
+      - notContains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: smtp
+            containerPort: 8025
+            protocol: TCP
+
+  - it: wires SMTP env, port, and auth Secret when enabled
+    template: templates/deployment.tpl
+    set:
+      config.smtpEnabled: true
+      auth.smtpAuth: "alice:secret"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CHASKI_SMTP_ENABLED
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CHASKI_SMTP_AUTH
+            valueFrom:
+              secretKeyRef:
+                name: chaski
+                key: smtpAuth
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: smtp
+            containerPort: 8025
+            protocol: TCP

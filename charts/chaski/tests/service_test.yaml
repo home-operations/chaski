@@ -33,3 +33,25 @@ tests:
             port: 8081
             targetPort: metrics
             protocol: TCP
+
+  - it: has no smtp port by default
+    asserts:
+      - notContains:
+          path: spec.ports
+          content:
+            name: smtp
+            port: 8025
+            targetPort: smtp
+            protocol: TCP
+
+  - it: exposes the smtp port when SMTP is enabled
+    set:
+      config.smtpEnabled: true
+    asserts:
+      - contains:
+          path: spec.ports
+          content:
+            name: smtp
+            port: 8025
+            targetPort: smtp
+            protocol: TCP

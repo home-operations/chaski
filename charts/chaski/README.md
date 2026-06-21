@@ -70,6 +70,7 @@ Kubernetes: `>=1.25.0-0`
 | affinity | object | `{}` | Affinity rules for pod scheduling (templated). |
 | auth.existingSecret | string | `""` | Use this existing Secret for the webhook token (and as a source for provider creds via `envFrom`) instead of rendering one. |
 | auth.existingSecretKey | string | `"token"` | Key in `existingSecret` holding the webhook token. |
+| auth.smtpAuth | string | `""` | Optional SMTP AUTH credentials as a `user:password,user2:password2` list (CHASKI_SMTP_AUTH), used only when `config.smtpEnabled`. When set, SMTP AUTH (PLAIN/LOGIN) is required and the value is rendered into the chart-managed Secret. With `existingSecret`, supply `CHASKI_SMTP_AUTH` via `envFrom`/`extraEnv` instead. NOTE: v1 has no TLS, so credentials travel in clear text — keep the listener internal. |
 | auth.webhookToken | string | `""` | The global inbound webhook token (CHASKI_WEBHOOK_TOKEN). If set, it is rendered into a chart-managed Secret. Leave empty and use `existingSecret` to supply it from your own (e.g. SOPS/sealed) Secret. With neither, inbound token auth is disabled (per-route `verify` still applies). |
 | config.configPath | string | `"/config/chaski.yaml"` | Path chaski reads its config from (CHASKI_CONFIG): a single file, or a directory of `*.yaml` fragments (config.d). The default matches the rendered ConfigMap. |
 | config.existingConfigMap | string | `""` | Mount this existing ConfigMap instead of rendering one from `routes`/`targets` (e.g. for a config.d directory of fragments). Set `configPath` to `/config` for directory mode. |
@@ -84,6 +85,11 @@ Kubernetes: `>=1.25.0-0`
 | config.retryAttempts | int | `3` | Global default retry attempts per target (CHASKI_RETRY_ATTEMPTS); a target's `retry.attempts` overrides it. |
 | config.retryBackoff | string | `"200ms"` | Global default retry base backoff (CHASKI_RETRY_BACKOFF); a target's `retry.backoff` overrides it. |
 | config.routes | object | `{}` | Route definitions, keyed by name (the URL path: POST /notify/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference. |
+| config.smtpEnabled | bool | `false` | Accept notifications over SMTP, relaying by the recipient localpart (sonarr@… → the route named `sonarr`). Off by default — it is an inbound relay path, so opt in explicitly (CHASKI_SMTP_ENABLED). When on, set `auth.smtpAuth` and keep the listener on a trusted network (v1 has no TLS). |
+| config.smtpHostname | string | `"chaski"` | Hostname announced in the SMTP greeting (CHASKI_SMTP_HOSTNAME). |
+| config.smtpMaxMessageBytes | int | `1048576` | Max inbound message size in bytes (CHASKI_SMTP_MAX_MESSAGE_BYTES). |
+| config.smtpMaxRecipients | int | `50` | Max recipients per message (CHASKI_SMTP_MAX_RECIPIENTS). |
+| config.smtpPort | int | `8025` | SMTP listener port (CHASKI_SMTP_PORT); also the container/Service smtp port when enabled. |
 | config.targets | object | `{}` | Target (sink) definitions, keyed by name. Each is exactly one of `apprise:` or `http:`. Credentials belong in `{{ env "VAR" }}` references resolved from the environment (see `auth`/`envFrom`), never inline. |
 | deploymentAnnotations | object | `{}` | Annotations added to the Deployment metadata, e.g. `reloader.stakater.com/auto: "true"` to roll the pod when a referenced ConfigMap/Secret changes (recommended when using `existingConfigMap`). |
 | env | object | `{}` | Extra environment variables as a map (templated). Use for non-secret values referenced by `{{ env "…" }}` in targets, e.g. GOTIFY_HOST. |
