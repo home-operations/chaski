@@ -25,12 +25,21 @@ chaski {{ .Chart.AppVersion }} is deployed as {{ include "chaski.fullname" . }} 
    {{- end }}
 {{- end }}
 
-Send a webhook from inside the cluster (replace the route + token):
+Send a webhook from inside the cluster (replace <route>):
+{{- if or .Values.auth.webhookToken .Values.auth.existingSecret }}
 
+  TOKEN=$(kubectl -n {{ .Release.Namespace }} get secret {{ .Values.auth.existingSecret | default (include "chaski.fullname" .) }} -o jsonpath='{.data.{{ if .Values.auth.existingSecret }}{{ .Values.auth.existingSecretKey }}{{ else }}token{{ end }}}' | base64 -d)
   kubectl -n {{ .Release.Namespace }} run chaski-curl --rm -it --restart=Never --image=curlimages/curl -- \
     curl -fsS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
       --data '{"status":"firing"}' \
       "http://{{ include "chaski.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/notify/<route>?dryRun=1"
+{{- else }}
+
+  kubectl -n {{ .Release.Namespace }} run chaski-curl --rm -it --restart=Never --image=curlimages/curl -- \
+    curl -fsS -X POST -H "Content-Type: application/json" \
+      --data '{"status":"firing"}' \
+      "http://{{ include "chaski.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/notify/<route>?dryRun=1"
+{{- end }}
 
 Validate the config (the same checks chaski runs at boot):
 
