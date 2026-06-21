@@ -6,66 +6,84 @@
     "AppriseSink": {
       "properties": {
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "URL is the apprise-go target URL; its scheme selects the provider and\ncarries the credentials (e.g. pover://user@token). Required."
         }
       },
       "additionalProperties": false,
       "type": "object",
-      "required": ["url"]
+      "required": ["url"],
+      "description": "AppriseSink is a notification target: an Apprise URL whose scheme selects the provider (pover://, ntfy://, …)."
     },
     "HTTPSink": {
       "properties": {
         "method": {
-          "type": "string"
+          "type": "string",
+          "description": "Method is the HTTP method (default POST)."
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "URL is the endpoint to forward to. Required."
         },
         "headers": {
           "additionalProperties": {
             "type": "string"
           },
-          "type": "object"
+          "type": "object",
+          "description": "Headers are static (or {{ env }}-rendered) request headers."
         },
         "timeout": {
           "type": "string",
+          "description": "Timeout is the per-request deadline (e.g. \"5s\"); default CHASKI_REQUEST_TIMEOUT.",
           "examples": ["10s", "500ms", "1m30s"]
         },
         "retry": {
-          "$ref": "#/$defs/Retry"
+          "$ref": "#/$defs/Retry",
+          "description": "Retry overrides the default CHASKI_RETRY_* policy for this target."
         }
       },
       "additionalProperties": false,
       "type": "object",
-      "required": ["url"]
+      "required": ["url"],
+      "description": "HTTPSink is a generic HTTP forward target."
     },
     "Response": {
       "properties": {
         "status": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Status is returned on a successful relay (default 200)."
         },
         "skipStatus": {
-          "type": "integer"
+          "type": "integer",
+          "description": "SkipStatus is returned when the whenExpr gate is false (default 204)."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Response overrides the literal status codes a sender observes."
     },
     "Retry": {
       "properties": {
         "attempts": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Attempts is the max send attempts (\u003e= 1)."
         },
         "backoff": {
           "type": "string",
+          "description": "Backoff is the initial exponential backoff (e.g. \"1s\").",
           "examples": ["10s", "500ms", "1m30s"]
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Retry overrides the global retry defaults for a single target."
     },
     "Route": {
       "properties": {
+        "description": {
+          "type": "string",
+          "description": "Description is optional free-text for humans; it appears in logs, the\n`chaski validate` summary, and ?dryRun=1 plans, and is otherwise ignored."
+        },
         "target": {
           "oneOf": [
             {
@@ -107,39 +125,48 @@
               },
               "type": "array"
             }
-          ]
+          ],
+          "description": "Target is the target name(s) this route fans out to: a single name, a list\nof names, or a list mixing names and {name, whenExpr} objects. Required.\nEvery listed target whose whenExpr matches receives the request (no\nfirst-match-wins); a target's whenExpr defaults to true."
         },
         "whenExpr": {
-          "type": "string"
+          "type": "string",
+          "description": "WhenExpr is the per-route CEL boolean gate deciding whether the request is\nrelayed at all. Empty means always fire. (CEL, unlike the Go-template fields.)"
         },
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Title is the notification title (Go template); applies to apprise targets."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "Message is the relayed body (Go template). Omit it to forward the inbound\nrequest body verbatim to an http target; an empty or omitted message skips\nan apprise send (a bodyless notification is pointless)."
         },
         "params": {
           "additionalProperties": {
             "type": "string"
           },
-          "type": "object"
+          "type": "object",
+          "description": "Params are Go-template values URL-encoded onto an apprise target's query\n(provider fields like priority/sound). Ignored by http targets."
         },
         "headers": {
           "additionalProperties": {
             "type": "string"
           },
-          "type": "object"
+          "type": "object",
+          "description": "Headers are Go-template values merged onto an http target's request headers\n(the target's own headers win a name clash). Ignored by apprise targets."
         },
         "verify": {
-          "$ref": "#/$defs/Verify"
+          "$ref": "#/$defs/Verify",
+          "description": "Verify optionally requires an inbound signature (HMAC or shared token)."
         },
         "response": {
-          "$ref": "#/$defs/Response"
+          "$ref": "#/$defs/Response",
+          "description": "Response optionally overrides the status a sender sees (relay vs skip)."
         }
       },
       "additionalProperties": false,
       "type": "object",
-      "required": ["target"]
+      "required": ["target"],
+      "description": "Route gates an inbound webhook with a CEL expression and renders the fields that are relayed to its target(s)."
     },
     "RouteConfig": {
       "properties": {
@@ -147,23 +174,27 @@
           "additionalProperties": {
             "$ref": "#/$defs/Route"
           },
-          "type": "object"
+          "type": "object",
+          "description": "Routes keyed by name; the name is the inbound URL path segment\n(POST /hooks/\u003cname\u003e) and, when SMTP is enabled, the email localpart."
         },
         "targets": {
           "additionalProperties": {
             "$ref": "#/$defs/Target"
           },
-          "type": "object"
+          "type": "object",
+          "description": "Targets are the named sinks that routes deliver to, keyed by name."
         },
         "templates": {
           "additionalProperties": {
             "type": "string"
           },
-          "type": "object"
+          "type": "object",
+          "description": "Templates are shared Go-template snippets, callable from any route field\nwith {{ template \"name\" . }} or {{ include \"name\" . }} (the latter pipes).\nEach value is a Go template, rendered per request like the route fields."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RouteConfig is the routes + targets loaded from CHASKI_CONFIG (a single YAML file or a config.d directory of fragments merged additively)."
     },
     "Target": {
       "oneOf": [
@@ -175,35 +206,48 @@
         }
       ],
       "properties": {
+        "description": {
+          "type": "string",
+          "description": "Description is optional free-text for humans; surfaced in the validate\nsummary and otherwise ignored."
+        },
         "apprise": {
-          "$ref": "#/$defs/AppriseSink"
+          "$ref": "#/$defs/AppriseSink",
+          "description": "Apprise sends a notification via an apprise-go URL."
         },
         "http": {
-          "$ref": "#/$defs/HTTPSink"
+          "$ref": "#/$defs/HTTPSink",
+          "description": "HTTP forwards to a generic HTTP endpoint."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Target is a config-defined sink."
     },
     "Verify": {
       "properties": {
         "provider": {
-          "type": "string"
+          "type": "string",
+          "description": "Provider is a named preset that fills the other fields (e.g. \"github\").\nUse it OR Type, not both."
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "description": "Type is the generic mode (\"hmac\" | \"token\") when no preset is used."
         },
         "header": {
-          "type": "string"
+          "type": "string",
+          "description": "Header is the request header carrying the signature/token."
         },
         "algo": {
-          "type": "string"
+          "type": "string",
+          "description": "Algo is the HMAC hash (e.g. \"sha256\"); hmac mode only."
         },
         "encoding": {
-          "type": "string"
+          "type": "string",
+          "description": "Encoding is the signature encoding (\"hex\" | \"base64\"); hmac mode only."
         },
         "prefix": {
-          "type": "string"
+          "type": "string",
+          "description": "Prefix is a literal prefix stripped from the header value (e.g. \"sha256=\")."
         },
         "secret": {
           "oneOf": [
@@ -216,11 +260,13 @@
               },
               "type": "array"
             }
-          ]
+          ],
+          "description": "Secret is one secret or a list (each tried, so secrets rotate cleanly)."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Verify is an optional per-route inbound signature check over the raw body."
     }
   }
 }

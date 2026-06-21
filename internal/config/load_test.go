@@ -213,6 +213,22 @@ func TestDuplicateTargetInRouteRejected(t *testing.T) {
 	}
 }
 
+func TestDescriptionRoundTrips(t *testing.T) {
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "c.yaml"),
+		"targets:\n  a: { description: a sink, apprise: { url: 'pover://u@t/' } }\nroutes:\n  r: { description: a route, target: a, message: m }\n")
+	rc, err := LoadRouteConfig(dir)
+	if err != nil {
+		t.Fatalf("LoadRouteConfig: %v", err)
+	}
+	if got := rc.Routes["r"].Description; got != "a route" {
+		t.Errorf("route description = %q, want %q", got, "a route")
+	}
+	if got := rc.Targets["a"].Description; got != "a sink" {
+		t.Errorf("target description = %q, want %q", got, "a sink")
+	}
+}
+
 func TestSinkValidation(t *testing.T) {
 	tests := map[string]string{
 		"both sinks":     "targets:\n  x: {apprise: {url: 'pover://u@t/'}, http: {url: 'https://h'}}\n",
