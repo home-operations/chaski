@@ -60,6 +60,7 @@ func TestTargetRefsDecode(t *testing.T) {
 			`[{ whenExpr: 'true' }]`,       // missing name
 			`[{ name: a, whenExpr: [x] }]`, // non-scalar value
 			`""`,                           // empty name
+			`[{ name: a, name: b }]`,       // duplicate key
 		} {
 			if _, err := loadTarget(t, bad); err == nil {
 				t.Errorf("target %q decoded without error, want rejection", bad)
@@ -202,6 +203,16 @@ func TestDuplicateNamesAreFatal(t *testing.T) {
 	}
 }
 
+func TestDuplicateTargetInRouteRejected(t *testing.T) {
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "c.yaml"),
+		"targets:\n  x: {apprise: {url: 'pover://u@t/'}}\nroutes:\n  r:\n    message: m\n    target:\n      - { name: x, whenExpr: 'payload.a' }\n      - { name: x, whenExpr: 'payload.b' }\n")
+	_, err := LoadRouteConfig(dir)
+	if err == nil || !strings.Contains(err.Error(), "more than once") {
+		t.Fatalf("err = %v, want a duplicate-target error guiding to one whenExpr", err)
+	}
+}
+
 func TestSinkValidation(t *testing.T) {
 	tests := map[string]string{
 		"both sinks":     "targets:\n  x: {apprise: {url: 'pover://u@t/'}, http: {url: 'https://h'}}\n",
@@ -233,8 +244,23 @@ func TestMissingEnvVarIsFatal(t *testing.T) {
 func TestMultiDocumentRejected(t *testing.T) {
 	dir := t.TempDir()
 	write(t, filepath.Join(dir, "c.yaml"), "targets:\n  a: {apprise: {url: 'pover://u@t/'}}\n---\ntargets:\n  b: {apprise: {url: 'pover://u@t/'}}\n")
-	if _, err := LoadRouteConfig(dir); err == nil {
-		t.Fatal("expected error for multi-document file")
+	_, err := LoadRouteConfig(dir)
+	if err == nil || !strings.Contains(err.Error(), "multiple YAML documents") {
+		t.Fatalf("err = %v, want a multi-document error", err)
+	}
+}
+
+// TestParseErrorHasNoMultiDocSuffix: a plain syntax error must not be tagged
+// with the (multi-document) hint that only applies to multi-document files.
+func TestParseErrorHasNoMultiDocSuffix(t *testing.T) {
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "c.yaml"), "targets:\n  a: {apprise: {url: 'pover://u@t/'}}\n bad: indentation\n")
+	_, err := LoadRouteConfig(dir)
+	if err == nil {
+		t.Fatal("expected a parse error")
+	}
+	if strings.Contains(err.Error(), "multi") || strings.Contains(err.Error(), "split") {
+		t.Errorf("plain parse error carries the multi-document hint: %v", err)
 	}
 }
 

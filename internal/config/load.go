@@ -184,7 +184,12 @@ func decodeFragment(data []byte, name string) (*RouteConfig, error) {
 	var rc RouteConfig
 	// Strict decoding: an unknown/typo'd key is an error, not a silent no-op.
 	if err := yaml.Load(data, &rc, yaml.WithKnownFields()); err != nil {
-		return nil, fmt.Errorf("config: parsing %q: %w (multi-document files are not supported — split into separate files)", name, err)
+		// The split-files hint only applies to the multi-document error; don't
+		// append it to unrelated parse errors (a typo, bad indentation, …).
+		if strings.Contains(err.Error(), "expected single document") {
+			return nil, fmt.Errorf("config: %q has multiple YAML documents; split them into separate files", name)
+		}
+		return nil, fmt.Errorf("config: parsing %q: %w", name, err)
 	}
 
 	for _, r := range rc.Routes {
