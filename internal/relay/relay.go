@@ -78,6 +78,14 @@ func (e *Engine) Lookup(name string) (*Route, bool) {
 // RouteCount reports how many routes are configured (0 → the server boots idle).
 func (e *Engine) RouteCount() int { return len(e.routes) }
 
+// routeTarget pairs a resolved sink with its per-target gate. The gate (from the
+// target's whenExpr, empty ⇒ always fires) selects whether this sink receives a
+// given request, so one route can fan out to a request-dependent subset.
+type routeTarget struct {
+	sink sink.Sink
+	gate *gate.Gate
+}
+
 // Route is one compiled route.
 type Route struct {
 	name      string
@@ -87,7 +95,7 @@ type Route struct {
 	message   *render.Template // nil if omitted (verbatim forward for http)
 	params    *render.Map
 	headers   *render.Map
-	sinks     []sink.Sink
+	targets   []routeTarget
 	okStatus  int
 	skipState int
 }
@@ -123,13 +131,17 @@ func buildRoute(name string, rt *config.Route, sinks map[string]sink.Sink, set *
 		return nil, err
 	}
 
-	routeSinks := make([]sink.Sink, 0, len(rt.Target))
-	for _, tn := range rt.Target {
-		s, ok := sinks[tn]
+	targets := make([]routeTarget, 0, len(rt.Target))
+	for _, ref := range rt.Target {
+		s, ok := sinks[ref.Name]
 		if !ok {
-			return nil, fmt.Errorf("unknown target %q", tn) // defensive; config.Validate already checks
+			return nil, fmt.Errorf("unknown target %q", ref.Name) // defensive; config.Validate already checks
 		}
-		routeSinks = append(routeSinks, s)
+		tg, err := gate.Compile(ref.WhenExpr)
+		if err != nil {
+			return nil, fmt.Errorf("target %q: %w", ref.Name, err)
+		}
+		targets = append(targets, routeTarget{sink: s, gate: tg})
 	}
 
 	ok, skip := defaultOKStatus, defaultSkipStatus
@@ -145,7 +157,7 @@ func buildRoute(name string, rt *config.Route, sinks map[string]sink.Sink, set *
 	return &Route{
 		name: name, gate: g, verifier: vf,
 		title: title, message: message, params: params, headers: headers,
-		sinks: routeSinks, okStatus: ok, skipState: skip,
+		targets: targets, okStatus: ok, skipState: skip,
 	}, nil
 }
 
@@ -212,10 +224,11 @@ type Result struct {
 // verified+decoded request and returns the response Result. The deadline is the
 // caller's ctx.
 func (r *Route) Handle(ctx context.Context, in Input) Result {
-	fired, err := r.gate.Eval(ctx, gate.Input{
+	gi := gate.Input{
 		Payload: in.Payload, Headers: in.Headers, Query: in.Query,
 		Method: in.Method, Route: r.name, Now: in.Now,
-	})
+	}
+	fired, err := r.gate.Eval(ctx, gi)
 	if err != nil {
 		return Result{Status: http.StatusInternalServerError, Kind: GateError, Err: err}
 	}
@@ -228,16 +241,23 @@ func (r *Route) Handle(ctx context.Context, in Input) Result {
 		return Result{Status: r.skipState, Kind: Skipped, Reason: "gate"}
 	}
 
+	// Per-target gates pick the fan-out subset against the same variables as the
+	// route gate. A target gate fault is an operator error (→ 500), like the route.
+	matched, err := r.matchTargets(ctx, gi)
+	if err != nil {
+		return Result{Status: http.StatusInternalServerError, Kind: GateError, Err: err}
+	}
+
 	rr, err := r.renderAll(in)
 	if err != nil {
 		return Result{Status: http.StatusInternalServerError, Kind: RenderError, Err: err, Dropped: rr.dropped}
 	}
 
 	if in.DryRun {
-		return Result{Status: http.StatusOK, Kind: DryRunned, Plan: r.plan(rr, in), Dropped: rr.dropped}
+		return Result{Status: http.StatusOK, Kind: DryRunned, Plan: r.plan(rr, in, matched), Dropped: rr.dropped}
 	}
 
-	sent, err := r.fanOut(ctx, rr, in)
+	sent, err := r.fanOut(ctx, rr, in, matched)
 	if err != nil {
 		return Result{Status: http.StatusBadGateway, Kind: RelayError, Err: err, Dropped: rr.dropped}
 	}
@@ -245,6 +265,20 @@ func (r *Route) Handle(ctx context.Context, in Input) Result {
 		return Result{Status: r.skipState, Kind: Skipped, Reason: "no_targets", Dropped: rr.dropped}
 	}
 	return Result{Status: r.okStatus, Kind: Relayed, Dropped: rr.dropped}
+}
+
+// matchTargets evaluates each target's gate against gi, returning a parallel
+// mask of which targets the request fans out to. The first gate fault aborts.
+func (r *Route) matchTargets(ctx context.Context, gi gate.Input) ([]bool, error) {
+	matched := make([]bool, len(r.targets))
+	for i, t := range r.targets {
+		ok, err := t.gate.Eval(ctx, gi)
+		if err != nil {
+			return nil, fmt.Errorf("target %q: %w", t.sink.Name(), err)
+		}
+		matched[i] = ok
+	}
+	return matched, nil
 }
 
 // rendered holds a route's rendered fields for one request.
@@ -301,18 +335,22 @@ func (rr *rendered) mergeDropped(prefix string, dropped map[string]error) {
 	}
 }
 
-// fanOut relays to every non-skipped target concurrently. It returns the number
-// attempted (0 → overall skip) and the first error (→ 502). An apprise target
-// with an empty body is skipped; an http target always sends.
-func (r *Route) fanOut(ctx context.Context, rr rendered, in Input) (int, error) {
+// fanOut relays to every gate-matched, non-skipped target concurrently. It
+// returns the number attempted (0 → overall skip) and the first error (→ 502). A
+// target whose whenExpr is false is skipped; an apprise target with an empty body
+// is skipped; an http target always sends.
+func (r *Route) fanOut(ctx context.Context, rr rendered, in Input, matched []bool) (int, error) {
 	type job struct {
 		s   sink.Sink
 		msg sink.Message
 	}
 	var jobs []job
-	for _, s := range r.sinks {
-		if msg, ok := messageFor(s, rr, in); ok {
-			jobs = append(jobs, job{s, msg})
+	for i, t := range r.targets {
+		if !matched[i] {
+			continue
+		}
+		if msg, ok := messageFor(t.sink, rr, in); ok {
+			jobs = append(jobs, job{t.sink, msg})
 		}
 	}
 	if len(jobs) == 0 {
@@ -365,11 +403,11 @@ type PlanTarget struct {
 	Skipped bool              `json:"skipped,omitempty"`
 }
 
-func (r *Route) plan(rr rendered, in Input) *Plan {
+func (r *Route) plan(rr rendered, in Input, matched []bool) *Plan {
 	p := &Plan{Route: r.name, Fired: true}
-	for _, s := range r.sinks {
-		pt := PlanTarget{Name: s.Name(), Kind: s.Kind()}
-		if msg, ok := messageFor(s, rr, in); ok {
+	for i, t := range r.targets {
+		pt := PlanTarget{Name: t.sink.Name(), Kind: t.sink.Kind()}
+		if msg, ok := messageFor(t.sink, rr, in); ok && matched[i] {
 			pt.Title, pt.Body, pt.Params, pt.Headers = msg.Title, msg.Body, msg.Params, msg.Headers
 		} else {
 			pt.Skipped = true

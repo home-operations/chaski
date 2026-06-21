@@ -63,8 +63,8 @@ func (r *Route) validate(name string, targets map[string]*Target) error {
 		return fmt.Errorf("config: route %q (%s): target is required", name, r.Source)
 	}
 	for _, tn := range r.Target {
-		if _, ok := targets[tn]; !ok {
-			return fmt.Errorf("config: route %q (%s) references unknown target %q", name, r.Source, tn)
+		if _, ok := targets[tn.Name]; !ok {
+			return fmt.Errorf("config: route %q (%s) references unknown target %q", name, r.Source, tn.Name)
 		}
 	}
 	if resp := r.Response; resp != nil {

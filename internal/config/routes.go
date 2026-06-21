@@ -34,9 +34,12 @@ func (rc *RouteConfig) TemplateSource(name string) string {
 // that are relayed to its target(s). whenExpr is the only CEL field; title,
 // message, and the params/headers values are Go templates evaluated per request.
 type Route struct {
-	// Target is one target name or a list to fan out to. Required.
-	// (`jsonschema` tags are inert at runtime — read only by cmd/schema.)
-	Target StringList `yaml:"target" jsonschema:"required"`
+	// Target is one target name, a list of names, or a list mixing names and
+	// {name, whenExpr} objects to fan out to. Required. A target's whenExpr gates
+	// that single sink, so the route fans out only to the targets whose
+	// expression matches the request. (`jsonschema` tags are inert at runtime —
+	// read only by cmd/schema.)
+	Target TargetRefs `yaml:"target" jsonschema:"required"`
 	// WhenExpr is the CEL boolean gate (default true when empty).
 	WhenExpr string `yaml:"whenExpr"`
 	// Title and Message are Go templates. Message is a pointer so an omitted
@@ -141,6 +144,82 @@ func (s *StringList) UnmarshalYAML(node *yaml.Node) error {
 	}
 	*s = list
 	return nil
+}
+
+// TargetRef is one fan-out target: a configured target name, optionally gated by
+// its own whenExpr — a CEL boolean over the same variables as the route gate. An
+// empty whenExpr always fires (whenever the route does), so a bare name behaves
+// exactly as before.
+type TargetRef struct {
+	Name     string
+	WhenExpr string
+}
+
+// TargetRefs is a route's fan-out list. It decodes a single name, a list of
+// names, or a list mixing names and {name, whenExpr} objects, so the common case
+// (`target: po` or `target: [a, b]`) stays terse.
+type TargetRefs []TargetRef
+
+// UnmarshalYAML implements the go.yaml.in/yaml/v4 node-based unmarshaler.
+func (t *TargetRefs) UnmarshalYAML(node *yaml.Node) error {
+	switch node.Kind {
+	case yaml.ScalarNode, yaml.MappingNode:
+		// A single target: a bare name or one {name, whenExpr} object.
+		ref, err := decodeTargetRef(node)
+		if err != nil {
+			return err
+		}
+		*t = TargetRefs{ref}
+		return nil
+	case yaml.SequenceNode:
+		refs := make(TargetRefs, 0, len(node.Content))
+		for _, el := range node.Content {
+			ref, err := decodeTargetRef(el)
+			if err != nil {
+				return err
+			}
+			refs = append(refs, ref)
+		}
+		*t = refs
+		return nil
+	default:
+		return fmt.Errorf("expected a target name, a list of names, or a list of {name, whenExpr} objects")
+	}
+}
+
+// decodeTargetRef reads one fan-out entry: a bare name (scalar) or a
+// {name, whenExpr} object. Unknown keys and non-scalar values are rejected, so a
+// typo'd whenExpr can't silently leave a target ungated (firing on every request).
+func decodeTargetRef(node *yaml.Node) (TargetRef, error) {
+	switch node.Kind {
+	case yaml.ScalarNode:
+		if node.Value == "" {
+			return TargetRef{}, fmt.Errorf("a target name must not be empty")
+		}
+		return TargetRef{Name: node.Value}, nil
+	case yaml.MappingNode:
+		var ref TargetRef
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			key, val := node.Content[i], node.Content[i+1]
+			if val.Kind != yaml.ScalarNode {
+				return TargetRef{}, fmt.Errorf("target %q must be a string", key.Value)
+			}
+			switch key.Value {
+			case "name":
+				ref.Name = val.Value
+			case "whenExpr":
+				ref.WhenExpr = val.Value
+			default:
+				return TargetRef{}, fmt.Errorf("unknown target key %q (allowed: name, whenExpr)", key.Value)
+			}
+		}
+		if ref.Name == "" {
+			return TargetRef{}, fmt.Errorf("a target object requires a name")
+		}
+		return ref, nil
+	default:
+		return TargetRef{}, fmt.Errorf("a target must be a name or a {name, whenExpr} object")
+	}
 }
 
 // Duration is a time.Duration that decodes from a YAML string like "10s".

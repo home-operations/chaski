@@ -70,6 +70,26 @@ func customTypes(t reflect.Type) *jsonschema.Schema {
 				{Type: "array", Items: &jsonschema.Schema{Type: typeString}},
 			},
 		}
+	case reflect.TypeFor[config.TargetRefs]():
+		// A target is a name or a {name, whenExpr} object; the field is one such
+		// entry or a list of them.
+		props := jsonschema.NewProperties()
+		props.Set("name", &jsonschema.Schema{Type: typeString})
+		props.Set("whenExpr", &jsonschema.Schema{Type: typeString})
+		obj := &jsonschema.Schema{
+			Type:                 "object",
+			Properties:           props,
+			Required:             []string{"name"},
+			AdditionalProperties: jsonschema.FalseSchema,
+		}
+		entry := &jsonschema.Schema{OneOf: []*jsonschema.Schema{{Type: typeString}, obj}}
+		return &jsonschema.Schema{
+			OneOf: []*jsonschema.Schema{
+				{Type: typeString},
+				obj,
+				{Type: "array", Items: entry},
+			},
+		}
 	}
 	return nil
 }

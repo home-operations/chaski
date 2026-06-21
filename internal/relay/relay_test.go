@@ -143,6 +143,108 @@ routes: { r: { target: po, message: '{{ template "loop" . }}' } }
 	}
 }
 
+const perTargetWhenExpr = `
+targets:
+  a: { apprise: { url: 'pover://u@t/a' } }
+  b: { apprise: { url: 'pover://u@t/b' } }
+routes:
+  r:
+    message: 'm'
+    target:
+      - { name: a, whenExpr: 'payload.to == "a"' }
+      - { name: b, whenExpr: 'payload.to == "b"' }
+`
+
+// planTarget finds a named target in a dry-run plan.
+func planTarget(t *testing.T, p *relay.Plan, name string) relay.PlanTarget {
+	t.Helper()
+	for _, pt := range p.Targets {
+		if pt.Name == name {
+			return pt
+		}
+	}
+	t.Fatalf("target %q not in plan %+v", name, p.Targets)
+	return relay.PlanTarget{}
+}
+
+// TestPerTargetWhenExpr pins per-target conditional fan-out: a single route
+// delivers only to the targets whose own whenExpr matches the request.
+func TestPerTargetWhenExpr(t *testing.T) {
+	r := route(t, engine(t, perTargetWhenExpr, &fakeNotifier{}))
+
+	// Dry run for {to:a}: target a fires, target b is skipped.
+	res := handle(r, map[string]any{"to": "a"}, true)
+	if res.Kind != relay.DryRunned {
+		t.Fatalf("kind=%v err=%v, want DryRunned", res.Kind, res.Err)
+	}
+	if got := planTarget(t, res.Plan, "a"); got.Skipped {
+		t.Errorf("target a skipped for to=a, want delivered")
+	}
+	if got := planTarget(t, res.Plan, "b"); !got.Skipped {
+		t.Errorf("target b delivered for to=a, want skipped")
+	}
+
+	// Live: exactly one target (a) is sent to.
+	fn := &fakeNotifier{}
+	r = route(t, engine(t, perTargetWhenExpr, fn))
+	if res := handle(r, map[string]any{"to": "a"}, false); res.Kind != relay.Relayed {
+		t.Fatalf("kind=%v err=%v, want Relayed", res.Kind, res.Err)
+	}
+	if fn.calls != 1 {
+		t.Errorf("sends = %d, want 1 (only target a)", fn.calls)
+	}
+}
+
+// TestPerTargetWhenExprNoneMatch: route fires but no target matches ⇒ skip.
+func TestPerTargetWhenExprNoneMatch(t *testing.T) {
+	fn := &fakeNotifier{}
+	r := route(t, engine(t, perTargetWhenExpr, fn))
+	res := handle(r, map[string]any{"to": "nobody"}, false)
+	if res.Kind != relay.Skipped || res.Reason != "no_targets" {
+		t.Fatalf("kind=%v reason=%q, want Skipped/no_targets", res.Kind, res.Reason)
+	}
+	if fn.calls != 0 {
+		t.Errorf("sends = %d, want 0", fn.calls)
+	}
+}
+
+// TestPerTargetWhenExprError: a target gate fault is an operator error ⇒ 500.
+func TestPerTargetWhenExprError(t *testing.T) {
+	const y = `
+targets:
+  a: { apprise: { url: 'pover://u@t/a' } }
+routes:
+  r:
+    message: 'm'
+    target:
+      - { name: a, whenExpr: 'payload.items[5] == "x"' }
+`
+	r := route(t, engine(t, y, &fakeNotifier{}))
+	res := handle(r, map[string]any{"items": []any{}}, false)
+	if res.Kind != relay.GateError || res.Status != 500 {
+		t.Fatalf("kind=%v status=%d, want GateError/500", res.Kind, res.Status)
+	}
+}
+
+// TestStaticFanoutUnchanged: a bare target list still fans out to all targets.
+func TestStaticFanoutUnchanged(t *testing.T) {
+	const y = `
+targets:
+  a: { apprise: { url: 'pover://u@t/a' } }
+  b: { apprise: { url: 'pover://u@t/b' } }
+routes:
+  r: { message: 'm', target: [a, b] }
+`
+	fn := &fakeNotifier{}
+	r := route(t, engine(t, y, fn))
+	if res := handle(r, map[string]any{}, false); res.Kind != relay.Relayed {
+		t.Fatalf("kind=%v, want Relayed", res.Kind)
+	}
+	if fn.calls != 2 {
+		t.Errorf("sends = %d, want 2 (both targets)", fn.calls)
+	}
+}
+
 func TestGateSkips(t *testing.T) {
 	fn := &fakeNotifier{}
 	r := route(t, engine(t, apprise1, fn))
