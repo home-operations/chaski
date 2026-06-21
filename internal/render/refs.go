@@ -5,96 +5,139 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"text/template"
 	"text/template/parse"
 )
 
 // references walks a parsed template tree and returns every template name it
 // references, both via the {{ template "x" }} action and via the include "x"
-// function call. An include whose name argument is not a string literal is an
-// error: a non-literal name (a field path, a variable, a pipeline) cannot be
-// resolved at load, so it can be neither checked for existence nor for a cycle —
-// and could be payload-derived. We require it to be constant, which also matches
-// the {{ template }} action, whose name is always a literal. The returned names
-// may contain duplicates; callers that care dedupe.
+// function call. It is the soundness-critical half of the load-time cycle check:
+// if a reference could hide in a node the walk skips, a cycle would slip through
+// to a render-time stack overflow. So the walk is fail-closed — it descends into
+// every node that can carry a pipeline (including a parenthesized pipeline behind
+// a field access, a *parse.ChainNode) and returns an error on any node type it
+// does not recognize, rather than treating an unknown node as reference-free.
+//
+// An include whose name argument is not a string literal is an error: a
+// non-literal name (a field path, a variable, a pipeline, or one supplied by
+// pipe) cannot be resolved at load, so it can be neither checked for existence
+// nor for a cycle — and could be payload-derived. Requiring a literal matches the
+// {{ template }} action, whose name is always literal. Returned names may contain
+// duplicates; callers that care dedupe.
 func references(tree *parse.Tree) ([]string, error) {
 	if tree == nil || tree.Root == nil {
 		return nil, nil
 	}
+	w := &refWalker{}
+	w.node(tree.Root)
+	if w.err != nil {
+		return nil, w.err
+	}
+	return w.refs, nil
+}
 
-	var (
-		refs   []string
-		badErr error
-	)
+// refWalker accumulates references and the first walk error as it descends a
+// parse tree.
+type refWalker struct {
+	refs []string
+	err  error
+}
 
-	var walkNode func(parse.Node)
-	var walkPipe func(*parse.PipeNode)
+func (w *refWalker) badInclude() {
+	if w.err == nil {
+		w.err = fmt.Errorf(`include must be called directly with a string-literal name, e.g. {{ include "name" . }}`)
+	}
+}
 
-	walkPipe = func(p *parse.PipeNode) {
-		if p == nil {
+func (w *refWalker) node(n parse.Node) {
+	if n == nil || w.err != nil {
+		return
+	}
+	switch x := n.(type) {
+	case *parse.ListNode:
+		if x == nil {
 			return
 		}
-		for _, cmd := range p.Cmds {
-			if len(cmd.Args) > 0 {
-				if id, ok := cmd.Args[0].(*parse.IdentifierNode); ok && id.Ident == includeName {
-					switch {
-					case len(cmd.Args) < 2:
-						if badErr == nil {
-							badErr = fmt.Errorf(`include needs a template name, e.g. {{ include "name" . }}`)
-						}
-					default:
-						if s, ok := cmd.Args[1].(*parse.StringNode); ok {
-							refs = append(refs, s.Text)
-						} else if badErr == nil {
-							badErr = fmt.Errorf(`include template name must be a string literal, e.g. {{ include "name" . }}`)
-						}
-					}
-				}
-			}
-			// An argument may itself be a parenthesized pipeline, e.g.
-			// {{ printf "%s" (include "x" .) }}.
-			for _, arg := range cmd.Args {
-				if pn, ok := arg.(*parse.PipeNode); ok {
-					walkPipe(pn)
-				}
-			}
+		for _, c := range x.Nodes {
+			w.node(c)
+		}
+	case *parse.ActionNode:
+		w.pipe(x.Pipe)
+	case *parse.IfNode:
+		w.branch(x.Pipe, x.List, x.ElseList)
+	case *parse.RangeNode:
+		w.branch(x.Pipe, x.List, x.ElseList)
+	case *parse.WithNode:
+		w.branch(x.Pipe, x.List, x.ElseList)
+	case *parse.TemplateNode:
+		w.refs = append(w.refs, x.Name)
+		w.pipe(x.Pipe)
+	case *parse.PipeNode:
+		w.pipe(x)
+	case *parse.ChainNode:
+		w.node(x.Node)
+	case *parse.TextNode, *parse.BoolNode, *parse.DotNode, *parse.FieldNode,
+		*parse.IdentifierNode, *parse.NilNode, *parse.NumberNode,
+		*parse.StringNode, *parse.VariableNode, *parse.CommentNode,
+		*parse.BreakNode, *parse.ContinueNode:
+		// Leaf nodes — they cannot hold a template/include reference.
+	default:
+		// Fail closed: an unmodeled node could hide a reference, and treating it
+		// as reference-free is how a cycle would reach a render crash.
+		if w.err == nil {
+			w.err = fmt.Errorf("unsupported template node %T", n)
 		}
 	}
+}
 
-	walkNode = func(n parse.Node) {
-		switch x := n.(type) {
-		case *parse.ListNode:
-			if x == nil {
-				return
+// branch walks the pipe, body, and else of an if/range/with.
+func (w *refWalker) branch(pipe *parse.PipeNode, list, elseList *parse.ListNode) {
+	w.pipe(pipe)
+	w.node(list)
+	w.node(elseList)
+}
+
+func (w *refWalker) pipe(p *parse.PipeNode) {
+	if p == nil || w.err != nil {
+		return
+	}
+	for _, cmd := range p.Cmds {
+		w.command(cmd)
+	}
+}
+
+func (w *refWalker) command(cmd *parse.CommandNode) {
+	args := cmd.Args
+	// include must appear ONLY as a command head with a string-literal name.
+	// Anywhere else — not the head (so passed to call, printf, …) or the head
+	// without a literal name (bound to a variable, name supplied by pipe or
+	// parens) — means include is invoked indirectly, with a name that can't be
+	// resolved at load, so a cycle through it could slip past the graph check to
+	// a render-time stack overflow. Scan every position.
+	for i, arg := range args {
+		id, ok := arg.(*parse.IdentifierNode)
+		if !ok || id.Ident != includeName {
+			continue
+		}
+		if i == 0 && len(args) >= 2 {
+			if sn, ok := args[1].(*parse.StringNode); ok {
+				w.refs = append(w.refs, sn.Text)
+				continue
 			}
-			for _, c := range x.Nodes {
-				walkNode(c)
-			}
-		case *parse.ActionNode:
-			walkPipe(x.Pipe)
-		case *parse.IfNode:
-			walkPipe(x.Pipe)
-			walkNode(x.List)
-			walkNode(x.ElseList)
-		case *parse.RangeNode:
-			walkPipe(x.Pipe)
-			walkNode(x.List)
-			walkNode(x.ElseList)
-		case *parse.WithNode:
-			walkPipe(x.Pipe)
-			walkNode(x.List)
-			walkNode(x.ElseList)
-		case *parse.TemplateNode:
-			refs = append(refs, x.Name)
-			walkPipe(x.Pipe)
+		}
+		w.badInclude()
+	}
+	// An argument may itself carry a pipeline: a bare parenthesized pipeline
+	// (*parse.PipeNode) or one followed by a field/method access (*parse.ChainNode,
+	// e.g. (include "x" .).Field). Both must be walked or a reference inside them
+	// is missed.
+	for _, arg := range args {
+		switch a := arg.(type) {
+		case *parse.PipeNode:
+			w.pipe(a)
+		case *parse.ChainNode:
+			w.node(a)
 		}
 	}
-
-	walkNode(tree.Root)
-	if badErr != nil {
-		return nil, badErr
-	}
-	return refs, nil
 }
 
 // checkRefs verifies every name an owner references resolves to a declared
@@ -153,17 +196,4 @@ func checkAcyclic(refs map[string][]string) error {
 		}
 	}
 	return nil
-}
-
-// extraTemplate returns the name of any template associated with t that is not in
-// allowed, or "" if there is none. It catches {{ define }}/{{ block }} inside a
-// snippet or field body, which would add templates the reference analysis does
-// not model (and could shadow a snippet or the reserved names).
-func extraTemplate(t *template.Template, allowed map[string]bool) string {
-	for _, a := range t.Templates() {
-		if n := a.Name(); n != "" && !allowed[n] {
-			return n
-		}
-	}
-	return ""
 }
