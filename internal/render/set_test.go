@@ -226,6 +226,91 @@ func TestSetNestedDefineRejected(t *testing.T) {
 	}
 }
 
+// TestSetChainNodeCycleRejected pins the walker-soundness fix: a cycle whose
+// include is hidden behind a parenthesized pipeline + field access (a
+// *parse.ChainNode, e.g. {{ (include "x" .).F }}) must still be rejected at load.
+// Before the fix the walker skipped ChainNode args, so the include edge was lost
+// and the cycle reached a render-time stack-overflow crash.
+func TestSetChainNodeCycleRejected(t *testing.T) {
+	cases := map[string]map[string]string{
+		"self":     {"loop": `{{ (include "loop" .).X }}`},
+		"mutual":   {"a": `{{ (include "b" .).X }}`, "b": `{{ (include "a" .).Y }}`},
+		"in-if":    {"loop": `{{ if (include "loop" .).Ok }}x{{ end }}`},
+		"in-range": {"loop": `{{ range (include "loop" .).Items }}x{{ end }}`},
+	}
+	for name, snippets := range cases {
+		if _, err := render.NewSet(snippets); err == nil {
+			t.Errorf("%s: NewSet accepted a cycle hidden in a ChainNode, want rejection", name)
+		}
+	}
+}
+
+// TestSetChainNodeReferenceSeen proves the ChainNode walk doesn't over-reject: a
+// non-cyclic chained include is accepted, while a chained include of an undefined
+// snippet is still caught — i.e. the reference is genuinely seen, not ignored.
+func TestSetChainNodeReferenceSeen(t *testing.T) {
+	if _, err := render.NewSet(map[string]string{"greet": "hi", "s": `{{ (include "greet" .).X }}`}); err != nil {
+		t.Errorf("NewSet rejected a valid chained include: %v", err)
+	}
+	if _, err := render.NewSet(map[string]string{"s": `{{ (include "nope" .).X }}`}); err == nil {
+		t.Error("chained include of an undefined snippet = nil error, want dangling rejection")
+	}
+}
+
+// TestSetDefineShadowRejected pins both define-shadow holes: a snippet (or a
+// field) that {{ define }}s an existing snippet's name would overwrite the
+// already-validated tree and reintroduce a cycle. The blanket nested-template
+// rejection closes both paths.
+func TestSetDefineShadowRejected(t *testing.T) {
+	if _, err := render.NewSet(map[string]string{
+		"m": "X",
+		"z": `{{ define "m" }}{{ include "z" . }}{{ end }}Z{{ include "m" . }}`,
+	}); err == nil {
+		t.Error("snippet redefining another snippet via {{ define }} = nil error, want rejection")
+	}
+	s := mustSet(t, map[string]string{"m": "X", "z": `{{ include "m" . }}`})
+	if _, err := s.Compile("message", `{{ define "m" }}{{ include "z" . }}{{ end }}{{ include "z" . }}`); err == nil {
+		t.Error("field redefining a snippet via {{ define }} = nil error, want rejection")
+	}
+}
+
+// TestSetIndirectIncludeRejected pins that include can't be invoked indirectly
+// (via the call builtin, a variable, or a pipe-supplied name), which would let a
+// cycle through include escape the static graph check and crash the process at
+// render. include is only valid as a command head with a string-literal name.
+func TestSetIndirectIncludeRejected(t *testing.T) {
+	for _, body := range []string{
+		`{{ call include "loop" . }}`,               // via the call builtin
+		`{{ printf "%v" (call include "loop" .) }}`, // call, nested in a pipe arg
+		`{{ $f := include }}{{ $f "loop" . }}`,      // bound to a variable
+		`{{ "loop" | include }}`,                    // name supplied by a pipe
+		`{{ include ("loop") . }}`,                  // name not a bare literal
+	} {
+		if _, err := render.NewSet(map[string]string{"loop": body}); err == nil {
+			t.Errorf("NewSet accepted an indirect include %q, want rejection", body)
+		}
+	}
+	// The direct, literal forms (including a trailing pipe and piped data) stay
+	// valid.
+	for _, body := range []string{
+		`{{ include "greet" . }}`,
+		`{{ include "greet" . | toUpper }}`,
+		`{{ . | include "greet" }}`,
+	} {
+		if _, err := render.NewSet(map[string]string{"greet": "hi", "s": body}); err != nil {
+			t.Errorf("NewSet rejected a valid include %q: %v", body, err)
+		}
+	}
+}
+
+func TestSetDefineReservedNameRejected(t *testing.T) {
+	// Defining the reserved holder name would slip past a name-based allow-list;
+	// the blanket define rejection covers it.
+	if _, err := render.NewSet(map[string]string{"a": `{{ define "_chaski_root" }}x{{ end }}body`}); err == nil {
+		t.Error(`snippet defining "_chaski_root" = nil error, want rejection`)
+	}
+}
+
 func TestSetCompileMapUsesSnippets(t *testing.T) {
 	s := mustSet(t, map[string]string{"pri": "high"})
 	m, err := s.CompileMap("params", map[string]string{"priority": `{{ template "pri" . }}`})

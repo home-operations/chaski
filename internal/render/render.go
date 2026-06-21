@@ -94,13 +94,17 @@ func NewSet(snippets map[string]string) (*Set, error) {
 	names := slices.Sorted(maps.Keys(snippets)) // deterministic errors
 	defined := make(map[string]bool, len(names))
 	refs := make(map[string][]string, len(names))
-	allowed := map[string]bool{rootName: true}
 	for _, name := range names {
 		switch name {
 		case "":
 			return nil, fmt.Errorf("render: a template name must not be empty")
 		case rootName, fieldName:
 			return nil, fmt.Errorf("render: template name %q is reserved", name)
+		}
+		// Reject {{ define }}/{{ block }} before parsing into base, so a nested
+		// define can't mutate the shared tree the cycle check relies on.
+		if err := rejectNestedTemplates(fmt.Sprintf("template %q", name), snippets[name]); err != nil {
+			return nil, err
 		}
 		t, err := base.New(name).Parse(snippets[name])
 		if err != nil {
@@ -112,14 +116,8 @@ func NewSet(snippets map[string]string) (*Set, error) {
 		}
 		defined[name] = true
 		refs[name] = r
-		allowed[name] = true
 	}
 
-	// A {{ define }}/{{ block }} in a snippet body would add a template the graph
-	// analysis below doesn't see (and could shadow a snippet or a reserved name).
-	if extra := extraTemplate(base, allowed); extra != "" {
-		return nil, fmt.Errorf("render: snippet defines a nested template %q; {{ define }}/{{ block }} are not supported", extra)
-	}
 	for _, name := range names {
 		if err := checkRefs(name, refs[name], defined); err != nil {
 			return nil, err
@@ -132,11 +130,37 @@ func NewSet(snippets map[string]string) (*Set, error) {
 	return &Set{base: base, defined: defined}, nil
 }
 
+// rejectNestedTemplates errors if body uses {{ define }} or {{ block }}. Those
+// add a template to the shared tree that the reference analysis can't model and
+// that could shadow a snippet, the field, or the reserved holder — re-opening a
+// cycle the graph check already ruled out. It parses body in isolation: a body
+// with no nested template yields exactly one, so it catches a redefinition of an
+// existing name as readily as a new one, regardless of parse order. (Defining
+// the probe's own name is itself a parse error, so it can't evade the count.)
+func rejectNestedTemplates(label, body string) error {
+	probe := template.New("_probe").
+		Option("missingkey=default").
+		Funcs(tmpl.FuncMap()).
+		Funcs(template.FuncMap{includeName: includePlaceholder})
+	if _, err := probe.Parse(body); err != nil {
+		return fmt.Errorf("render: parse %s: %w", label, err)
+	}
+	if len(probe.Templates()) > 1 {
+		return fmt.Errorf("render: %s uses {{ define }}/{{ block }}, which is not supported", label)
+	}
+	return nil
+}
+
 // Compile parses one field template into a clone of the snippet tree, so the
 // field can reference any snippet. A reference to an excluded function (e.g.
 // readFile) is a parse error here, so the restriction is enforced at load, not
 // silently at render.
 func (s *Set) Compile(name, text string) (*Template, error) {
+	// Reject {{ define }}/{{ block }} first: a field that defines a snippet's name
+	// would shadow it in the clone and could reintroduce a cycle.
+	if err := rejectNestedTemplates(name, text); err != nil {
+		return nil, err
+	}
 	// Clone keeps each field's tree independent and lets include bind to it. The
 	// base is never executed, so it is always safe to clone.
 	root, err := s.base.Clone()
@@ -151,18 +175,14 @@ func (s *Set) Compile(name, text string) (*Template, error) {
 	if err != nil {
 		return nil, fmt.Errorf("render: parse %s: %w", name, err)
 	}
-	// Validate the field's references like a snippet's: they must resolve to a
+	// Validate the field's references like a snippet's: each must resolve to a
 	// declared snippet and not a reserved name. The snippet graph is already
-	// acyclic and cannot reference the field (its reserved name is rejected), so
-	// the field is a pure source node and cannot introduce a cycle.
+	// acyclic and cannot reference the field (its reserved name is rejected) or
+	// be redefined (nested defines are rejected above), so the field is a pure
+	// source node and cannot introduce a cycle.
 	r, err := references(t.Tree)
 	if err != nil {
 		return nil, fmt.Errorf("render: %s: %w", name, err)
-	}
-	allowed := map[string]bool{rootName: true, fieldName: true}
-	maps.Copy(allowed, s.defined)
-	if extra := extraTemplate(root, allowed); extra != "" {
-		return nil, fmt.Errorf("render: %s defines a nested template %q; {{ define }}/{{ block }} are not supported", name, extra)
 	}
 	if err := checkRefs(name, r, s.defined); err != nil {
 		return nil, err
