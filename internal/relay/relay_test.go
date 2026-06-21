@@ -118,6 +118,31 @@ routes: { r: { target: po, message: 'x' } }
 	}
 }
 
+// TestCyclicTemplateFailsBuild pins the headline fix: an include cycle (which at
+// render would recurse until the goroutine stack overflows — an unrecoverable
+// crash) is rejected at Build, i.e. boot / `chaski validate`, not at request time.
+func TestCyclicTemplateFailsBuild(t *testing.T) {
+	const y = `
+templates:
+  loop: '{{ include "loop" . }}'
+targets: { po: { apprise: { url: 'pover://u@t/' } } }
+routes: { r: { target: po, message: '{{ template "loop" . }}' } }
+`
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+	if err := os.WriteFile(file, []byte(y), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc, err := config.LoadRouteConfig(file)
+	if err != nil {
+		t.Fatalf("LoadRouteConfig: %v", err)
+	}
+	cfg := &config.Config{RetryAttempts: 1, RetryBackoff: time.Millisecond, RequestTimeout: time.Second}
+	if _, err := relay.Build(rc, cfg, relay.Options{Notifier: &fakeNotifier{}}); err == nil {
+		t.Fatal("relay.Build with a template cycle = nil error, want a cycle error")
+	}
+}
+
 func TestGateSkips(t *testing.T) {
 	fn := &fakeNotifier{}
 	r := route(t, engine(t, apprise1, fn))

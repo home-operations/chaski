@@ -56,7 +56,8 @@ type Template struct {
 // template can reuse a snippet via {{ template "name" . }} or {{ include
 // "name" . }}; snippets may reference one another. Build it once at load.
 type Set struct {
-	base *template.Template // holds the snippets; cloned per compiled field
+	base    *template.Template // holds the snippets; cloned per compiled field
+	defined map[string]bool    // snippet names, for validating field references
 }
 
 // Reserved template names. rootName is the base/holder template (never
@@ -68,9 +69,19 @@ type Set struct {
 const (
 	rootName  = "_chaski_root"
 	fieldName = "_chaski_field"
+	// includeName is the funcmap key for the include helper; also matched by name
+	// when scanning parse trees for include references.
+	includeName = "include"
 )
 
-// NewSet parses the named snippets into a shared template tree.
+// NewSet parses the named snippets into a shared template tree and validates
+// their reference graph: every {{ template }} / include reference must resolve to
+// a declared snippet, no snippet may reference a reserved name, and the graph must
+// be acyclic. The graph checks matter because include re-enters via
+// ExecuteTemplate (resetting text/template's depth guard), so a cycle would
+// recurse until the goroutine stack overflows — a runtime-fatal crash recover()
+// cannot catch. Validating here makes that, and a dangling reference, a load-time
+// failure (boot / `chaski validate`) instead of a render-time fault.
 func NewSet(snippets map[string]string) (*Set, error) {
 	base := template.New(rootName).
 		Option("missingkey=default").
@@ -78,18 +89,47 @@ func NewSet(snippets map[string]string) (*Set, error) {
 		// include must already exist when a snippet that uses it is parsed; the
 		// real implementation is bound per field in Compile (it needs the field's
 		// own tree to resolve names).
-		Funcs(template.FuncMap{"include": includePlaceholder})
-	// Sorted only for a deterministic error on the first bad snippet; a forward
-	// {{ template }} reference resolves at execute time, so order is irrelevant.
-	for _, name := range slices.Sorted(maps.Keys(snippets)) {
-		if name == rootName || name == fieldName {
+		Funcs(template.FuncMap{includeName: includePlaceholder})
+
+	names := slices.Sorted(maps.Keys(snippets)) // deterministic errors
+	defined := make(map[string]bool, len(names))
+	refs := make(map[string][]string, len(names))
+	allowed := map[string]bool{rootName: true}
+	for _, name := range names {
+		switch name {
+		case "":
+			return nil, fmt.Errorf("render: a template name must not be empty")
+		case rootName, fieldName:
 			return nil, fmt.Errorf("render: template name %q is reserved", name)
 		}
-		if _, err := base.New(name).Parse(snippets[name]); err != nil {
+		t, err := base.New(name).Parse(snippets[name])
+		if err != nil {
 			return nil, fmt.Errorf("render: parse template %q: %w", name, err)
 		}
+		r, err := references(t.Tree)
+		if err != nil {
+			return nil, fmt.Errorf("render: template %q: %w", name, err)
+		}
+		defined[name] = true
+		refs[name] = r
+		allowed[name] = true
 	}
-	return &Set{base: base}, nil
+
+	// A {{ define }}/{{ block }} in a snippet body would add a template the graph
+	// analysis below doesn't see (and could shadow a snippet or a reserved name).
+	if extra := extraTemplate(base, allowed); extra != "" {
+		return nil, fmt.Errorf("render: snippet defines a nested template %q; {{ define }}/{{ block }} are not supported", extra)
+	}
+	for _, name := range names {
+		if err := checkRefs(name, refs[name], defined); err != nil {
+			return nil, err
+		}
+	}
+	if err := checkAcyclic(refs); err != nil {
+		return nil, err
+	}
+
+	return &Set{base: base, defined: defined}, nil
 }
 
 // Compile parses one field template into a clone of the snippet tree, so the
@@ -103,13 +143,29 @@ func (s *Set) Compile(name, text string) (*Template, error) {
 	if err != nil {
 		return nil, fmt.Errorf("render: clone for %s: %w", name, err)
 	}
-	root.Funcs(template.FuncMap{"include": includeFunc(root)})
+	root.Funcs(template.FuncMap{includeName: includeFunc(root)})
 	// Parse under the reserved fieldName, never the role name, so a snippet named
 	// like this field is not overwritten; the field still reaches snippets by
 	// their own names. The human name stays in the error for attribution.
 	t, err := root.New(fieldName).Parse(text)
 	if err != nil {
 		return nil, fmt.Errorf("render: parse %s: %w", name, err)
+	}
+	// Validate the field's references like a snippet's: they must resolve to a
+	// declared snippet and not a reserved name. The snippet graph is already
+	// acyclic and cannot reference the field (its reserved name is rejected), so
+	// the field is a pure source node and cannot introduce a cycle.
+	r, err := references(t.Tree)
+	if err != nil {
+		return nil, fmt.Errorf("render: %s: %w", name, err)
+	}
+	allowed := map[string]bool{rootName: true, fieldName: true}
+	maps.Copy(allowed, s.defined)
+	if extra := extraTemplate(root, allowed); extra != "" {
+		return nil, fmt.Errorf("render: %s defines a nested template %q; {{ define }}/{{ block }} are not supported", name, extra)
+	}
+	if err := checkRefs(name, r, s.defined); err != nil {
+		return nil, err
 	}
 	return &Template{t: t, src: text}, nil
 }
