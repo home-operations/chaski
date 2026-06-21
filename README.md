@@ -74,6 +74,13 @@ config before deploying it (the same checks the server runs at boot):
 chaski validate -c ./chaski.yaml
 ```
 
+Render a route against a saved sample body offline — no running server — to see
+the rendered fields (and catch a wrong field path or typo'd key before deploy):
+
+```sh
+chaski validate -c ./chaski.yaml --payload sample.json --route alertmanager
+```
+
 ## Targets
 
 A route relays to one or more named targets; a target is exactly one of two
