@@ -148,10 +148,12 @@ error is retried with exponential backoff + jitter, bounded by the deadline.
 
 ## Templating
 
-`whenExpr` is [CEL](https://github.com/google/cel-go); every other field is a Go
-[`text/template`](https://pkg.go.dev/text/template) with
-[sprout](https://docs.atom.codes/sprout) helpers and `{{ env "…" }}`. Both see
-the same variables: `payload`, `headers`, `query`, `method`, `route`, `now`.
+Every rendered field — `title`, `message`, and the `params`/`headers` values —
+is a Go [`text/template`](https://pkg.go.dev/text/template) with
+[sprout](https://docs.atom.codes/sprout) helpers and `{{ env "…" }}`. The lone
+exception is the per-route gate `whenExpr`, a
+[CEL](https://github.com/google/cel-go) boolean. Both see the same variables:
+`payload`, `headers`, `query`, `method`, `route`, `now`.
 
 A richer **apprise** route — a severity-driven title, a bullet per alert, and a
 priority/sound chosen from the payload:
@@ -285,9 +287,6 @@ SMTP AUTH (PLAIN/LOGIN); with no TLS, those credentials travel in clear text. Pe
 Attachments are not forwarded.
 
 ## Configuration
-
-`whenExpr` is CEL; every other field is a Go template. Both expose the same
-variables: `payload`, `headers`, `query`, `method`, `route`, and `now`.
 
 Routes and targets are loaded from `CHASKI_CONFIG`; operational settings come
 from the environment:
