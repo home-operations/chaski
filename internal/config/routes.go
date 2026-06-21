@@ -199,8 +199,13 @@ func decodeTargetRef(node *yaml.Node) (TargetRef, error) {
 		return TargetRef{Name: node.Value}, nil
 	case yaml.MappingNode:
 		var ref TargetRef
+		seen := make(map[string]bool, 2)
 		for i := 0; i+1 < len(node.Content); i += 2 {
 			key, val := node.Content[i], node.Content[i+1]
+			if seen[key.Value] {
+				return TargetRef{}, fmt.Errorf("duplicate target key %q", key.Value)
+			}
+			seen[key.Value] = true
 			if val.Kind != yaml.ScalarNode {
 				return TargetRef{}, fmt.Errorf("target %q must be a string", key.Value)
 			}

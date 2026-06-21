@@ -62,10 +62,17 @@ func (r *Route) validate(name string, targets map[string]*Target) error {
 	if len(r.Target) == 0 {
 		return fmt.Errorf("config: route %q (%s): target is required", name, r.Source)
 	}
+	seen := make(map[string]bool, len(r.Target))
 	for _, tn := range r.Target {
 		if _, ok := targets[tn.Name]; !ok {
 			return fmt.Errorf("config: route %q (%s) references unknown target %q", name, r.Source, tn.Name)
 		}
+		if seen[tn.Name] {
+			// Two entries for one sink would deliver to it twice; with per-target
+			// whenExpr that reads like an OR but double-sends when both match.
+			return fmt.Errorf("config: route %q (%s) lists target %q more than once; combine the conditions into one whenExpr (a || b)", name, r.Source, tn.Name)
+		}
+		seen[tn.Name] = true
 	}
 	if resp := r.Response; resp != nil {
 		if err := validateStatus(resp.Status, name, r.Source, "status"); err != nil {
