@@ -229,6 +229,27 @@ func TestDescriptionRoundTrips(t *testing.T) {
 	}
 }
 
+func TestVerifyUnionDecode(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+
+	write(t, file, "targets:\n  t: {apprise: {url: 'pover://u@t/'}}\nroutes:\n  r:\n    target: t\n    message: m\n    verify:\n      github:\n        secret: s\n")
+	rc, err := LoadRouteConfig(dir)
+	if err != nil {
+		t.Fatalf("LoadRouteConfig: %v", err)
+	}
+	if v := rc.Routes["r"].Verify; v == nil || v.GitHub == nil || v.VerifyKind() != "github" {
+		t.Fatalf("verify = %+v, want a github variant", rc.Routes["r"].Verify)
+	}
+
+	// The old flat shape (provider/type/secret under verify) is rejected by strict
+	// decode now that verify is a github|hmac|token union.
+	write(t, file, "targets:\n  t: {apprise: {url: 'pover://u@t/'}}\nroutes:\n  r:\n    target: t\n    message: m\n    verify:\n      provider: github\n      secret: s\n")
+	if _, err := LoadRouteConfig(dir); err == nil {
+		t.Error("old flat verify shape (provider/secret) should be rejected")
+	}
+}
+
 func TestSinkValidation(t *testing.T) {
 	tests := map[string]string{
 		"both sinks":     "targets:\n  x: {apprise: {url: 'pover://u@t/'}, http: {url: 'https://h'}}\n",
