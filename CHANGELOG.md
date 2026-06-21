@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.2](https://github.com/home-operations/chaski/compare/0.1.1...0.1.2) (2026-06-21)
+
+
+### Features
+
+* **relay:** per-target whenExpr for conditional fan-out ([#18](https://github.com/home-operations/chaski/issues/18)) ([4dca3fd](https://github.com/home-operations/chaski/commit/4dca3fd4b25ddb5b8184e817e7464acd2715bec0))
+
+
+### Bug Fixes
+
+* **render:** make the snippet reference walk fail-closed ([#16](https://github.com/home-operations/chaski/issues/16)) ([4ac4f10](https://github.com/home-operations/chaski/commit/4ac4f10fc879615ab84a955d2451b0da269597b9))
+* **render:** validate the snippet reference graph at load ([#14](https://github.com/home-operations/chaski/issues/14)) ([5ee0d20](https://github.com/home-operations/chaski/commit/5ee0d205cce7ada04f01aa0d8ba43d68bfb79eba))
+
+
+### Documentation
+
+* right-size the CEL surface in the README ([#17](https://github.com/home-operations/chaski/issues/17)) ([8a5c016](https://github.com/home-operations/chaski/commit/8a5c016440d0dd25feae678f3d53cf18e5bf3b68))
+
 ## [0.1.1](https://github.com/home-operations/chaski/compare/0.1.0...0.1.1) (2026-06-21)
 
 
