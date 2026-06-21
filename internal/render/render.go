@@ -8,6 +8,8 @@ package render
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -49,19 +51,81 @@ type Template struct {
 	src string
 }
 
-// Compile parses one field template with the shared funcmap. A reference to an
-// excluded function (e.g. readFile) is a parse error here, so the restriction is
-// enforced at load, not silently at render.
-func Compile(name, text string) (*Template, error) {
-	t, err := template.New(name).
-		Option("missingkey=default"). // missing map key -> "<no value>", never an error
+// Set is a compiled collection of named template snippets (the top-level
+// `templates:` block). It is shared across a config's routes so any field
+// template can reuse a snippet via {{ template "name" . }} or {{ include
+// "name" . }}; snippets may reference one another. Build it once at load.
+type Set struct {
+	base *template.Template // holds the snippets; cloned per compiled field
+}
+
+// NewSet parses the named snippets into a shared template tree.
+func NewSet(snippets map[string]string) (*Set, error) {
+	base := template.New("chaski").
+		Option("missingkey=default").
 		Funcs(tmpl.FuncMap()).
-		Parse(text)
+		// include must already exist when a snippet that uses it is parsed; the
+		// real implementation is bound per field in Compile (it needs the field's
+		// own tree to resolve names).
+		Funcs(template.FuncMap{"include": includePlaceholder})
+	// Sorted only for a deterministic error on the first bad snippet; a forward
+	// {{ template }} reference resolves at execute time, so order is irrelevant.
+	for _, name := range slices.Sorted(maps.Keys(snippets)) {
+		if _, err := base.New(name).Parse(snippets[name]); err != nil {
+			return nil, fmt.Errorf("render: parse template %q: %w", name, err)
+		}
+	}
+	return &Set{base: base}, nil
+}
+
+// Compile parses one field template into a clone of the snippet tree, so the
+// field can reference any snippet. A reference to an excluded function (e.g.
+// readFile) is a parse error here, so the restriction is enforced at load, not
+// silently at render.
+func (s *Set) Compile(name, text string) (*Template, error) {
+	// Clone keeps each field's tree independent and lets include bind to it. The
+	// base is never executed, so it is always safe to clone.
+	root, err := s.base.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("render: clone for %s: %w", name, err)
+	}
+	root.Funcs(template.FuncMap{"include": includeFunc(root)})
+	t, err := root.New(name).Parse(text)
 	if err != nil {
 		return nil, fmt.Errorf("render: parse %s: %w", name, err)
 	}
 	return &Template{t: t, src: text}, nil
 }
+
+// emptySet is the snippet-less set backing the package-level Compile/CompileMap,
+// so a caller with no `templates:` block needs no Set.
+var emptySet = func() *Set {
+	s, err := NewSet(nil)
+	if err != nil {
+		panic("render: building empty set: " + err.Error())
+	}
+	return s
+}()
+
+// Compile parses one field template with no shared snippets.
+func Compile(name, text string) (*Template, error) { return emptySet.Compile(name, text) }
+
+// includeFunc executes a named template and returns its output, so it can be
+// piped (e.g. {{ include "x" . | toUpper }}); the {{ template }} action is a
+// statement and cannot be.
+func includeFunc(t *template.Template) func(string, any) (string, error) {
+	return func(name string, data any) (string, error) {
+		var buf strings.Builder
+		if err := t.ExecuteTemplate(&buf, name, data); err != nil {
+			return "", err
+		}
+		return buf.String(), nil
+	}
+}
+
+// includePlaceholder satisfies parse-time resolution of `include`; it is
+// replaced by includeFunc (bound to the field's tree) before any execution.
+func includePlaceholder(string, any) (string, error) { return "", nil }
 
 // Render executes the template against d.
 func (t *Template) Render(d Data) (string, error) {
@@ -87,21 +151,26 @@ type Map struct {
 	entries map[string]*Template
 }
 
-// CompileMap parses every value in m. A parse error in any value fails at load,
-// named by its key.
-func CompileMap(field string, m map[string]string) (*Map, error) {
+// CompileMap parses every value in m against this set's snippets. A parse error
+// in any value fails at load, named by its key.
+func (s *Set) CompileMap(field string, m map[string]string) (*Map, error) {
 	if len(m) == 0 {
 		return &Map{}, nil
 	}
 	entries := make(map[string]*Template, len(m))
 	for k, v := range m {
-		t, err := Compile(fmt.Sprintf("%s[%s]", field, k), v)
+		t, err := s.Compile(fmt.Sprintf("%s[%s]", field, k), v)
 		if err != nil {
 			return nil, err
 		}
 		entries[k] = t
 	}
 	return &Map{entries: entries}, nil
+}
+
+// CompileMap parses every value in m with no shared snippets.
+func CompileMap(field string, m map[string]string) (*Map, error) {
+	return emptySet.CompileMap(field, m)
 }
 
 // Render evaluates every entry. A key whose value errors at render is an

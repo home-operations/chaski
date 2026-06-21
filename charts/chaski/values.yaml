@@ -86,6 +86,10 @@ config:
   #     apprise:
   #       url: 'pover://{{ env "PUSHOVER_USER" }}@{{ env "PUSHOVER_TOKEN" }}/'
 
+  # -- Shared named Go-template snippets, keyed by name. Callable from any route field with `{{ template "name" . }}` or `{{ include "name" . }}`. Emitted verbatim into the ConfigMap alongside routes/targets.
+  templates: {}
+  #   label: '[{{ .payload.severity | default "info" | toUpper }}]'
+
 # Inbound authentication and provider credentials, delivered as environment
 # variables from a Secret.
 auth:

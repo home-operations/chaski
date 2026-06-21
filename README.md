@@ -65,7 +65,7 @@ curl -X POST http://localhost:8080/notify/alertmanager \
 
 Append `?dryRun=1` to preview the matched targets and rendered fields without
 sending — including `"fired": false` when the `whenExpr` gate doesn't match, so
-you can see *why* a route wouldn't act. Every response also carries an
+you can see _why_ a route wouldn't act. Every response also carries an
 `X-Chaski-Result` header (`relayed`, `skipped:gate`, `skipped:no_targets`,
 `render_error`, …) so the outcome is visible even on a bodyless status. Check a
 config before deploying it (the same checks the server runs at boot):
@@ -213,27 +213,56 @@ strings (`trunc`, `toTitleCase`, `replace`, `trimAll`), `dict`/`dig`/`pluck`,
 filesystem and network helpers are excluded. See the
 [sprout registries](https://docs.atom.codes/sprout/registries) for the full set.
 
+### Shared snippets
+
+A top-level `templates:` block holds named Go-template snippets. Any route field
+(`title`, `message`, `params.*`, `headers.*`) can reuse one with
+`{{ template "name" . }}`, or `{{ include "name" . }}` when you need to pipe its
+output. Snippets compose (one can call another) and render against the same
+variables, so shared formatting lives in one place instead of being copied into
+every route:
+
+```yaml
+templates:
+  # A severity label reused by several routes.
+  label: '[{{ .payload.severity | default "info" | toUpper }}]'
+
+routes:
+  alerts:
+    target: pushover
+    title: '{{ template "label" . }} {{ .payload.title }}'
+    message: "{{ .payload.detail }}"
+  audit:
+    target: pushover
+    title: '{{ include "label" . }} audit: {{ .payload.action }}'
+```
+
+Both routes render `[CRITICAL] …` from the one `label` snippet. An undefined
+`{{ template "typo" . }}` fails at boot / `chaski validate`; a malformed snippet
+fails to compile. `whenExpr` is CEL, so snippets don't apply there — only to the
+Go-template fields.
+
 ## SMTP ingestion
 
 chaski can also accept notifications over **SMTP**, so devices that can only send
 email (printers, NAS boxes, UPSes, legacy monitoring) reach the same routes. It is
 **off by default**; enable it with `CHASKI_SMTP_ENABLED=true`.
 
-The recipient's localpart selects the route: mail to `sonarr@chaski` is handled by
-the route named `sonarr`. An unknown recipient is rejected, so the listener is never
+The recipient's localpart selects the route: mail to `printer@chaski` is handled by
+the route named `printer`. An unknown recipient is rejected, so the listener is never
 an open relay. The parsed message is exposed to `whenExpr` and templates as `payload`:
 
-| Field                           | Meaning                                     |
-| ------------------------------- | ------------------------------------------- |
-| `payload.subject`               | decoded `Subject`                           |
-| `payload.from`                  | first `From` address                        |
-| `payload.to`                    | the recipient that selected this route      |
-| `payload.body`                  | the text part, falling back to HTML         |
-| `payload.text` / `payload.html` | the individual parts                        |
+| Field                           | Meaning                                |
+| ------------------------------- | -------------------------------------- |
+| `payload.subject`               | decoded `Subject`                      |
+| `payload.from`                  | first `From` address                   |
+| `payload.to`                    | the recipient that selected this route |
+| `payload.body`                  | the text part, falling back to HTML    |
+| `payload.text` / `payload.html` | the individual parts                   |
 
 ```yaml
 routes:
-  sonarr:
+  printer:
     target: pushover
     title: "{{ .payload.subject }}"
     message: "{{ .payload.body }}"
@@ -242,8 +271,8 @@ routes:
 Send it with any mail client:
 
 ```sh
-swaks --server chaski:8025 --to sonarr@chaski --from sensor@lan \
-  --header "Subject: Disk degraded" --body "rebuild started"
+swaks --server chaski:8025 --to printer@chaski --from device@lan \
+  --header "Subject: Toner low" --body "tray 1 empty"
 ```
 
 **Security.** v1 has no TLS, so run the listener on a trusted network (a ClusterIP
@@ -281,15 +310,15 @@ server at it for completion and validation. The metrics port serves
 
 Key metrics:
 
-| Series                                       | Labels                      | Meaning                                            |
-| -------------------------------------------- | --------------------------- | -------------------------------------------------- |
-| `chaski_relays_total`                        | `route`, `result`           | Relay outcomes per route                           |
-| `chaski_target_sends_total`                  | `target`, `kind`, `outcome` | Per-target sends (`success`/`permanent`/`retryable`) |
-| `chaski_target_retries_total`                | `target`, `kind`            | Retried send attempts per target                   |
-| `chaski_webhook_rejected_total`              | `reason`                    | Inbound rejects (token/signature/body/…)           |
-| `chaski_smtp_rejected_total`                 | `reason`                    | SMTP rejects (`auth`/`recipient`)                  |
-| `chaski_http_request_duration_seconds`       | `method`                    | Inbound request latency                            |
-| `chaski_build_info`                          | `version`, `commit`         | Running build (value `1`)                          |
+| Series                                 | Labels                      | Meaning                                              |
+| -------------------------------------- | --------------------------- | ---------------------------------------------------- |
+| `chaski_relays_total`                  | `route`, `result`           | Relay outcomes per route                             |
+| `chaski_target_sends_total`            | `target`, `kind`, `outcome` | Per-target sends (`success`/`permanent`/`retryable`) |
+| `chaski_target_retries_total`          | `target`, `kind`            | Retried send attempts per target                     |
+| `chaski_webhook_rejected_total`        | `reason`                    | Inbound rejects (token/signature/body/…)             |
+| `chaski_smtp_rejected_total`           | `reason`                    | SMTP rejects (`auth`/`recipient`)                    |
+| `chaski_http_request_duration_seconds` | `method`                    | Inbound request latency                              |
+| `chaski_build_info`                    | `version`, `commit`         | Running build (value `1`)                            |
 
 ## Deployment
 

@@ -5,17 +5,19 @@ release:
   name: chaski
   namespace: chaski
 tests:
-  - it: renders routes/targets verbatim (chaski template syntax is not evaluated)
+  - it: renders routes/targets/templates verbatim (chaski template syntax is not evaluated)
     set:
       config:
         routes:
           alertmanager:
             target: po
-            title: "{{ .payload.commonLabels.alertname }}"
+            title: '{{ template "label" . }} {{ .payload.commonLabels.alertname }}'
         targets:
           po:
             apprise:
               url: "pover://u@t/"
+        templates:
+          label: "[{{ .payload.severity }}]"
     asserts:
       - isKind:
           of: ConfigMap
@@ -25,6 +27,12 @@ tests:
       - matchRegex:
           path: data["chaski.yaml"]
           pattern: '\.payload\.commonLabels\.alertname'
+      - matchRegex:
+          path: data["chaski.yaml"]
+          pattern: "templates:"
+      - matchRegex:
+          path: data["chaski.yaml"]
+          pattern: 'template "label"'
 
   - it: is suppressed when an existing ConfigMap is supplied
     set:

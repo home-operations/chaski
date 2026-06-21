@@ -124,6 +124,7 @@ func TestDuplicateNamesAreFatal(t *testing.T) {
 	for _, tc := range []struct{ name, a, b, want string }{
 		{"route", "routes:\n  dup: {target: x}\n", "routes:\n  dup: {target: x}\n", `duplicate route "dup"`},
 		{"target", "targets:\n  dup: {apprise: {url: 'pover://u@t/'}}\n", "targets:\n  dup: {apprise: {url: 'pover://u@t/'}}\n", `duplicate target "dup"`},
+		{"template", "templates:\n  dup: 'a'\n", "templates:\n  dup: 'b'\n", `duplicate template "dup"`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()

@@ -41,7 +41,12 @@ func LoadRouteConfig(path string) (*RouteConfig, error) {
 }
 
 func emptyConfig() *RouteConfig {
-	return &RouteConfig{Routes: map[string]*Route{}, Targets: map[string]*Target{}}
+	return &RouteConfig{
+		Routes:          map[string]*Route{},
+		Targets:         map[string]*Target{},
+		Templates:       map[string]string{},
+		templateSources: map[string]string{},
+	}
 }
 
 // readFragment reads and strict-decodes one fragment file. An empty or
@@ -188,6 +193,12 @@ func decodeFragment(data []byte, name string) (*RouteConfig, error) {
 	for _, t := range rc.Targets {
 		t.Source = name
 	}
+	if len(rc.Templates) > 0 {
+		rc.templateSources = make(map[string]string, len(rc.Templates))
+		for tpl := range rc.Templates {
+			rc.templateSources[tpl] = name
+		}
+	}
 	return &rc, nil
 }
 
@@ -220,6 +231,13 @@ func union(acc, frag *RouteConfig) error {
 			return fmt.Errorf("config: duplicate target %q defined in %s and %s", name, prev.Source, t.Source)
 		}
 		acc.Targets[name] = t
+	}
+	for name, body := range frag.Templates {
+		if _, ok := acc.Templates[name]; ok {
+			return fmt.Errorf("config: duplicate template %q defined in %s and %s", name, acc.templateSources[name], frag.templateSources[name])
+		}
+		acc.Templates[name] = body
+		acc.templateSources[name] = frag.templateSources[name]
 	}
 	return nil
 }

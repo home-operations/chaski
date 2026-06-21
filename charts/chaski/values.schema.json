@@ -155,6 +155,12 @@
           "required": [],
           "title": "targets",
           "type": "object"
+        },
+        "templates": {
+          "description": "Shared named Go-template snippets, keyed by name. Callable from any route field with `{{ template \"name\" . }}` or `{{ include \"name\" . }}`. Emitted verbatim into the ConfigMap alongside routes/targets.",
+          "required": [],
+          "title": "templates",
+          "type": "object"
         }
       },
       "required": [],

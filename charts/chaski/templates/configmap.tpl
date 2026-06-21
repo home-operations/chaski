@@ -10,5 +10,5 @@ data:
   # Emitted verbatim via toYaml, never Helm tpl: route fields carry chaski's own
   # CEL and Go-template syntax, which Helm must not try to evaluate.
   chaski.yaml: |
-{{ toYaml (dict "routes" (.Values.config.routes | default dict) "targets" (.Values.config.targets | default dict)) | indent 4 }}
+{{ toYaml (dict "routes" (.Values.config.routes | default dict) "targets" (.Values.config.targets | default dict) "templates" (.Values.config.templates | default dict)) | indent 4 }}
 {{- end }}
