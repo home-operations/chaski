@@ -115,7 +115,7 @@
           "type": "string"
         },
         "routes": {
-          "description": "Route definitions, keyed by name (the URL path: POST /notify/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference.",
+          "description": "Route definitions, keyed by name (the URL path: POST /hooks/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference.",
           "required": [],
           "title": "routes",
           "type": "object"

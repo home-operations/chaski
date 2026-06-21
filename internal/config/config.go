@@ -20,7 +20,7 @@ const DefaultConfigPath = "/config/chaski.yaml"
 // are populated by env.Parse; LogLevel is derived in Load so its parsing fails
 // fast with a clear message.
 type Config struct {
-	// HTTPPort is the public webhook receiver (POST /notify/{route}).
+	// HTTPPort is the public webhook receiver (POST /hooks/{route}).
 	HTTPPort int `env:"CHASKI_PORT" envDefault:"8080"`
 
 	// MetricsEnabled exposes Prometheus metrics at /metrics and the /healthz

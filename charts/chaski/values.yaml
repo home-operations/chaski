@@ -72,7 +72,7 @@ config:
   # -- Mount this existing ConfigMap instead of rendering one from `routes`/`targets` (e.g. for a config.d directory of fragments). Set `configPath` to `/config` for directory mode.
   existingConfigMap: ""
 
-  # -- Route definitions, keyed by name (the URL path: POST /notify/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference.
+  # -- Route definitions, keyed by name (the URL path: POST /hooks/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference.
   routes: {}
   #   alertmanager:
   #     target: pushover

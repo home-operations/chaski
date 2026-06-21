@@ -12,7 +12,7 @@ plain HTTP request.
 
 ## Features
 
-- **Routing by path** — `POST /notify/{route}`; each route is configured
+- **Routing by path** — `POST /hooks/{route}`; each route is configured
   independently and can fan out to several targets concurrently, optionally
   gating each target with its own `whenExpr`.
 - **CEL gate** — a per-route `whenExpr` decides whether a request is relayed.
@@ -59,7 +59,7 @@ token (see [Configuration](#configuration)):
 ```sh
 CHASKI_CONFIG=./chaski.yaml chaski
 
-curl -X POST http://localhost:8080/notify/alertmanager \
+curl -X POST http://localhost:8080/hooks/alertmanager \
   -H "Content-Type: application/json" \
   -d '{"status":"firing","commonLabels":{"severity":"critical","alertname":"HighCPU"}}'
 ```

@@ -84,7 +84,7 @@ Kubernetes: `>=1.25.0-0`
 | config.requestTimeout | string | `"15s"` | Whole-request deadline (CHASKI_REQUEST_TIMEOUT): decode + gate + render + send + retry. |
 | config.retryAttempts | int | `3` | Global default retry attempts per target (CHASKI_RETRY_ATTEMPTS); a target's `retry.attempts` overrides it. |
 | config.retryBackoff | string | `"200ms"` | Global default retry base backoff (CHASKI_RETRY_BACKOFF); a target's `retry.backoff` overrides it. |
-| config.routes | object | `{}` | Route definitions, keyed by name (the URL path: POST /notify/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference. |
+| config.routes | object | `{}` | Route definitions, keyed by name (the URL path: POST /hooks/{name}). Emitted verbatim into the ConfigMap — `{{ ... }}` here is chaski's CEL/Go-template syntax, not Helm's. See config.schema.json for the field reference. |
 | config.smtpEnabled | bool | `false` | Accept notifications over SMTP, relaying by the recipient localpart (sonarr@… → the route named `sonarr`). Off by default — it is an inbound relay path, so opt in explicitly (CHASKI_SMTP_ENABLED). When on, set `auth.smtpAuth` and keep the listener on a trusted network (v1 has no TLS). |
 | config.smtpHostname | string | `"chaski"` | Hostname announced in the SMTP greeting (CHASKI_SMTP_HOSTNAME). |
 | config.smtpMaxMessageBytes | int | `1048576` | Max inbound message size in bytes (CHASKI_SMTP_MAX_MESSAGE_BYTES). |
