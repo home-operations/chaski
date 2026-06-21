@@ -59,9 +59,20 @@ type Set struct {
 	base *template.Template // holds the snippets; cloned per compiled field
 }
 
+// Reserved template names. rootName is the base/holder template (never
+// executed); fieldName is the name every field body is parsed under. Parsing a
+// field under its own reserved name — rather than its role ("title", "message",
+// "params[k]") — means a snippet named like a field can never clobber it, and a
+// snippet can't shadow the root holder (which would nil its parse tree on clone
+// and panic at render). Both are rejected as snippet names.
+const (
+	rootName  = "_chaski_root"
+	fieldName = "_chaski_field"
+)
+
 // NewSet parses the named snippets into a shared template tree.
 func NewSet(snippets map[string]string) (*Set, error) {
-	base := template.New("chaski").
+	base := template.New(rootName).
 		Option("missingkey=default").
 		Funcs(tmpl.FuncMap()).
 		// include must already exist when a snippet that uses it is parsed; the
@@ -71,6 +82,9 @@ func NewSet(snippets map[string]string) (*Set, error) {
 	// Sorted only for a deterministic error on the first bad snippet; a forward
 	// {{ template }} reference resolves at execute time, so order is irrelevant.
 	for _, name := range slices.Sorted(maps.Keys(snippets)) {
+		if name == rootName || name == fieldName {
+			return nil, fmt.Errorf("render: template name %q is reserved", name)
+		}
 		if _, err := base.New(name).Parse(snippets[name]); err != nil {
 			return nil, fmt.Errorf("render: parse template %q: %w", name, err)
 		}
@@ -90,7 +104,10 @@ func (s *Set) Compile(name, text string) (*Template, error) {
 		return nil, fmt.Errorf("render: clone for %s: %w", name, err)
 	}
 	root.Funcs(template.FuncMap{"include": includeFunc(root)})
-	t, err := root.New(name).Parse(text)
+	// Parse under the reserved fieldName, never the role name, so a snippet named
+	// like this field is not overwritten; the field still reaches snippets by
+	// their own names. The human name stays in the error for attribution.
+	t, err := root.New(fieldName).Parse(text)
 	if err != nil {
 		return nil, fmt.Errorf("render: parse %s: %w", name, err)
 	}

@@ -145,7 +145,7 @@ func printSummary(w io.Writer, path string, rc *config.RouteConfig) {
 	// Writing the summary to stdout can't meaningfully fail; discard the result.
 	p := func(format string, a ...any) { _, _ = fmt.Fprintf(w, format, a...) }
 
-	p("ok: %s — %d route(s), %d target(s)\n", path, len(rc.Routes), len(rc.Targets))
+	p("ok: %s — %d route(s), %d target(s), %d template(s)\n", path, len(rc.Routes), len(rc.Targets), len(rc.Templates))
 	for _, name := range slices.Sorted(maps.Keys(rc.Routes)) {
 		r := rc.Routes[name]
 		p("  route %-24s (%s) → %v\n", name, r.Source, []string(r.Target))
@@ -153,5 +153,8 @@ func printSummary(w io.Writer, path string, rc *config.RouteConfig) {
 	for _, name := range slices.Sorted(maps.Keys(rc.Targets)) {
 		t := rc.Targets[name]
 		p("  target %-23s (%s) [%s]\n", name, t.Source, t.Kind())
+	}
+	for _, name := range slices.Sorted(maps.Keys(rc.Templates)) {
+		p("  template %-21s (%s)\n", name, rc.TemplateSource(name))
 	}
 }

@@ -237,10 +237,12 @@ routes:
     title: '{{ include "label" . }} audit: {{ .payload.action }}'
 ```
 
-Both routes render `[CRITICAL] …` from the one `label` snippet. An undefined
-`{{ template "typo" . }}` fails at boot / `chaski validate`; a malformed snippet
-fails to compile. `whenExpr` is CEL, so snippets don't apply there — only to the
-Go-template fields.
+Both routes render `[CRITICAL] …` from the one `label` snippet. A malformed
+snippet fails at boot / `chaski validate`, but an undefined `{{ template "typo"
+. }}` reference parses cleanly and only faults at render (the route returns 500) — run `chaski validate --payload sample.json` to exercise the templates
+before deploy. A snippet must not reference itself (directly or through a
+cycle); like Helm's `include`, a self-reference recurses without limit. `whenExpr`
+is CEL, so snippets don't apply there — only to the Go-template fields.
 
 ## SMTP ingestion
 

@@ -23,6 +23,13 @@ type RouteConfig struct {
 	templateSources map[string]string `yaml:"-"`
 }
 
+// TemplateSource returns the fragment file a named snippet was loaded from, or
+// "" if there is no such snippet. It exposes the loader's provenance for the
+// validate summary, mirroring Route.Source / Target.Source.
+func (rc *RouteConfig) TemplateSource(name string) string {
+	return rc.templateSources[name]
+}
+
 // Route gates an inbound webhook with a CEL expression and renders the fields
 // that are relayed to its target(s). whenExpr is the only CEL field; title,
 // message, and the params/headers values are Go templates evaluated per request.
