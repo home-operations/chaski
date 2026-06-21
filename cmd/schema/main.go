@@ -49,6 +49,15 @@ func main() {
 		}
 	}
 
+	// Verify is likewise an externally-tagged union: exactly one of github|hmac|token.
+	if verify, ok := schema.Definitions["Verify"]; ok {
+		verify.OneOf = []*jsonschema.Schema{
+			{Required: []string{"github"}},
+			{Required: []string{"hmac"}},
+			{Required: []string{"token"}},
+		}
+	}
+
 	data, err := json.MarshalIndent(schema, "", "  ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "schema: marshal:", err)

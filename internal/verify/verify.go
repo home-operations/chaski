@@ -31,8 +31,6 @@ const (
 )
 
 const (
-	typeHMAC   = "hmac"
-	typeToken  = "token"
 	encHex     = "hex"
 	encBase64  = "base64"
 	algoSHA256 = "sha256"
@@ -50,61 +48,79 @@ type Verifier struct {
 }
 
 // Compile resolves a config.Verify into a runnable Verifier, failing fast on a
-// malformed block (unknown provider/type, missing header, unsupported
+// malformed block (no variant or more than one, missing header, unsupported
 // algo/encoding, no secret). A nil block yields a nil Verifier.
 func Compile(v *config.Verify) (*Verifier, error) {
 	if v == nil {
 		return nil, nil
 	}
-
-	typ, header, algo, encoding, prefix := v.Type, v.Header, v.Algo, v.Encoding, v.Prefix
-	if v.Provider != "" {
-		switch strings.ToLower(v.Provider) {
-		case "github":
-			// X-Hub-Signature-256: sha256=<hex(hmac-sha256(body))>.
-			typ, header, algo, encoding, prefix = typeHMAC, "X-Hub-Signature-256", algoSHA256, encHex, "sha256="
-		default:
-			return nil, fmt.Errorf("verify: unknown provider %q", v.Provider)
-		}
+	switch {
+	case v.GitHub != nil && v.HMAC == nil && v.Token == nil:
+		// X-Hub-Signature-256: sha256=<hex(hmac-sha256(body))>.
+		return compileHMAC("X-Hub-Signature-256", algoSHA256, encHex, "sha256=", v.GitHub.Secret)
+	case v.HMAC != nil && v.GitHub == nil && v.Token == nil:
+		return compileHMAC(v.HMAC.Header, v.HMAC.Algo, v.HMAC.Encoding, v.HMAC.Prefix, v.HMAC.Secret)
+	case v.Token != nil && v.GitHub == nil && v.HMAC == nil:
+		return compileToken(v.Token.Header, v.Token.Secret)
+	default:
+		return nil, errors.New("verify: set exactly one of github, hmac, or token")
 	}
+}
 
-	if len(v.Secret) == 0 {
+// compileHMAC builds an HMAC verifier; encoding defaults to hex, algo to sha256.
+func compileHMAC(header, algo, encoding, prefix string, secret config.StringList) (*Verifier, error) {
+	if header == "" {
+		return nil, errors.New("verify: hmac requires a header")
+	}
+	secrets, err := secretBytes(secret)
+	if err != nil {
+		return nil, err
+	}
+	if encoding == "" {
+		encoding = encHex
+	}
+	if encoding != encHex && encoding != encBase64 {
+		return nil, fmt.Errorf("verify: unsupported encoding %q (want hex or base64)", encoding)
+	}
+	if algo == "" {
+		algo = algoSHA256
+	}
+	nh, err := hashFor(algo)
+	if err != nil {
+		return nil, err
+	}
+	return &Verifier{mode: modeHMAC, header: header, prefix: prefix, encoding: encoding, newHash: nh, secrets: secrets}, nil
+}
+
+// compileToken builds a shared-token verifier.
+func compileToken(header string, secret config.StringList) (*Verifier, error) {
+	if header == "" {
+		return nil, errors.New("verify: token requires a header")
+	}
+	secrets, err := secretBytes(secret)
+	if err != nil {
+		return nil, err
+	}
+	return &Verifier{mode: modeToken, header: header, secrets: secrets}, nil
+}
+
+// secretBytes captures the configured secrets, requiring at least one and
+// rejecting any empty/whitespace-only value. An empty secret is a fail-open: it
+// builds an empty HMAC key (forgeable by anyone) or an empty token, and the
+// strict env funcmap only catches an *unset* var, not one set to "". Secrets are
+// stored verbatim (no trimming) — only the emptiness check trims.
+func secretBytes(secret config.StringList) ([][]byte, error) {
+	if len(secret) == 0 {
 		return nil, errors.New("verify: at least one secret is required")
 	}
-	secrets := make([][]byte, len(v.Secret))
-	for i, s := range v.Secret {
+	secrets := make([][]byte, len(secret))
+	for i, s := range secret {
+		if strings.TrimSpace(s) == "" {
+			return nil, errors.New("verify: a secret must not be empty")
+		}
 		secrets[i] = []byte(s)
 	}
-	vf := &Verifier{header: header, prefix: prefix, secrets: secrets}
-
-	switch strings.ToLower(typ) {
-	case typeHMAC:
-		if header == "" {
-			return nil, errors.New("verify: hmac requires a header")
-		}
-		if encoding == "" {
-			encoding = encHex
-		}
-		if encoding != encHex && encoding != encBase64 {
-			return nil, fmt.Errorf("verify: unsupported encoding %q (want hex or base64)", encoding)
-		}
-		if algo == "" {
-			algo = algoSHA256
-		}
-		nh, err := hashFor(algo)
-		if err != nil {
-			return nil, err
-		}
-		vf.mode, vf.encoding, vf.newHash = modeHMAC, encoding, nh
-	case typeToken:
-		if header == "" {
-			return nil, errors.New("verify: token requires a header")
-		}
-		vf.mode = modeToken
-	default:
-		return nil, fmt.Errorf("verify: type must be hmac or token (got %q)", typ)
-	}
-	return vf, nil
+	return secrets, nil
 }
 
 // Verify reports whether the request's header satisfies the configured check

@@ -129,23 +129,75 @@ type Retry struct {
 	Backoff Duration `yaml:"backoff"`
 }
 
-// Verify is an optional per-route inbound signature check over the raw body.
+// Verify is an optional per-route inbound signature check over the raw body. It
+// is an externally-tagged union (like Target): exactly one of github, hmac, or
+// token — the variant key is the discriminator.
 type Verify struct {
-	// Provider is a named preset that fills the other fields (e.g. "github").
-	// Use it OR Type, not both.
-	Provider string `yaml:"provider"`
-	// Type is the generic mode ("hmac" | "token") when no preset is used.
-	Type string `yaml:"type"`
-	// Header is the request header carrying the signature/token.
-	Header string `yaml:"header"`
-	// Algo is the HMAC hash (e.g. "sha256"); hmac mode only.
+	// GitHub verifies a GitHub webhook: HMAC-SHA256 of the body, hex-encoded in
+	// the X-Hub-Signature-256 header with a "sha256=" prefix.
+	GitHub *GitHubVerify `yaml:"github"`
+	// HMAC verifies a generic HMAC signature carried in a request header.
+	HMAC *HMACVerify `yaml:"hmac"`
+	// Token requires a shared secret presented verbatim in a request header.
+	Token *TokenVerify `yaml:"token"`
+}
+
+// VerifyKind returns the configured variant ("github"|"hmac"|"token"), or "" when
+// zero or more than one is set (caught by verify.Compile).
+func (v *Verify) VerifyKind() string {
+	switch {
+	case v.GitHub != nil && v.HMAC == nil && v.Token == nil:
+		return "github"
+	case v.HMAC != nil && v.GitHub == nil && v.Token == nil:
+		return "hmac"
+	case v.Token != nil && v.GitHub == nil && v.HMAC == nil:
+		return "token"
+	default:
+		return ""
+	}
+}
+
+// Secrets returns the configured variant's secret list (or nil), for in-place
+// {{ env }}-rendering by the loader. Mutating the returned slice's elements
+// updates the variant.
+func (v *Verify) Secrets() StringList {
+	switch {
+	case v.GitHub != nil:
+		return v.GitHub.Secret
+	case v.HMAC != nil:
+		return v.HMAC.Secret
+	case v.Token != nil:
+		return v.Token.Secret
+	}
+	return nil
+}
+
+// GitHubVerify is the GitHub webhook preset; only the secret is configurable.
+type GitHubVerify struct {
+	// Secret is one secret or a list (each tried, so secrets rotate cleanly).
+	Secret StringList `yaml:"secret" jsonschema:"required"`
+}
+
+// HMACVerify verifies an HMAC of the raw body carried in a request header.
+type HMACVerify struct {
+	// Header carries the signature. Required.
+	Header string `yaml:"header" jsonschema:"required"`
+	// Algo is the hash: "sha256" (default) or "sha512".
 	Algo string `yaml:"algo"`
-	// Encoding is the signature encoding ("hex" | "base64"); hmac mode only.
+	// Encoding of the signature: "hex" (default) or "base64".
 	Encoding string `yaml:"encoding"`
-	// Prefix is a literal prefix stripped from the header value (e.g. "sha256=").
+	// Prefix is stripped from the header value before decoding (e.g. "sha256=").
 	Prefix string `yaml:"prefix"`
 	// Secret is one secret or a list (each tried, so secrets rotate cleanly).
-	Secret StringList `yaml:"secret"`
+	Secret StringList `yaml:"secret" jsonschema:"required"`
+}
+
+// TokenVerify requires a shared secret presented verbatim in a request header.
+type TokenVerify struct {
+	// Header carries the token. Required.
+	Header string `yaml:"header" jsonschema:"required"`
+	// Secret is one secret or a list (each tried, so secrets rotate cleanly).
+	Secret StringList `yaml:"secret" jsonschema:"required"`
 }
 
 // Response overrides the literal status codes a sender observes. The 4xx/5xx

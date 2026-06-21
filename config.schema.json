@@ -15,6 +15,66 @@
       "required": ["url"],
       "description": "AppriseSink is a notification target: an Apprise URL whose scheme selects the provider (pover://, ntfy://, …)."
     },
+    "GitHubVerify": {
+      "properties": {
+        "secret": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "description": "Secret is one secret or a list (each tried, so secrets rotate cleanly)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": ["secret"],
+      "description": "GitHubVerify is the GitHub webhook preset; only the secret is configurable."
+    },
+    "HMACVerify": {
+      "properties": {
+        "header": {
+          "type": "string",
+          "description": "Header carries the signature. Required."
+        },
+        "algo": {
+          "type": "string",
+          "description": "Algo is the hash: \"sha256\" (default) or \"sha512\"."
+        },
+        "encoding": {
+          "type": "string",
+          "description": "Encoding of the signature: \"hex\" (default) or \"base64\"."
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Prefix is stripped from the header value before decoding (e.g. \"sha256=\")."
+        },
+        "secret": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "description": "Secret is one secret or a list (each tried, so secrets rotate cleanly)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": ["header", "secret"],
+      "description": "HMACVerify verifies an HMAC of the raw body carried in a request header."
+    },
     "HTTPSink": {
       "properties": {
         "method": {
@@ -223,31 +283,11 @@
       "type": "object",
       "description": "Target is a config-defined sink."
     },
-    "Verify": {
+    "TokenVerify": {
       "properties": {
-        "provider": {
-          "type": "string",
-          "description": "Provider is a named preset that fills the other fields (e.g. \"github\").\nUse it OR Type, not both."
-        },
-        "type": {
-          "type": "string",
-          "description": "Type is the generic mode (\"hmac\" | \"token\") when no preset is used."
-        },
         "header": {
           "type": "string",
-          "description": "Header is the request header carrying the signature/token."
-        },
-        "algo": {
-          "type": "string",
-          "description": "Algo is the HMAC hash (e.g. \"sha256\"); hmac mode only."
-        },
-        "encoding": {
-          "type": "string",
-          "description": "Encoding is the signature encoding (\"hex\" | \"base64\"); hmac mode only."
-        },
-        "prefix": {
-          "type": "string",
-          "description": "Prefix is a literal prefix stripped from the header value (e.g. \"sha256=\")."
+          "description": "Header carries the token. Required."
         },
         "secret": {
           "oneOf": [
@@ -262,6 +302,37 @@
             }
           ],
           "description": "Secret is one secret or a list (each tried, so secrets rotate cleanly)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": ["header", "secret"],
+      "description": "TokenVerify requires a shared secret presented verbatim in a request header."
+    },
+    "Verify": {
+      "oneOf": [
+        {
+          "required": ["github"]
+        },
+        {
+          "required": ["hmac"]
+        },
+        {
+          "required": ["token"]
+        }
+      ],
+      "properties": {
+        "github": {
+          "$ref": "#/$defs/GitHubVerify",
+          "description": "GitHub verifies a GitHub webhook: HMAC-SHA256 of the body, hex-encoded in\nthe X-Hub-Signature-256 header with a \"sha256=\" prefix."
+        },
+        "hmac": {
+          "$ref": "#/$defs/HMACVerify",
+          "description": "HMAC verifies a generic HMAC signature carried in a request header."
+        },
+        "token": {
+          "$ref": "#/$defs/TokenVerify",
+          "description": "Token requires a shared secret presented verbatim in a request header."
         }
       },
       "additionalProperties": false,

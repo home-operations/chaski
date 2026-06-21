@@ -267,6 +267,39 @@ server serves. An `include` name must be a string literal (`{{ include "label"
 . }}`), like the `{{ template }}` action. `whenExpr` is CEL, so snippets don't
 apply there — only to the Go-template fields.
 
+## Verifying senders
+
+A route may require an inbound signature over the raw body. `verify` is a
+discriminated union — exactly one of `github`, `hmac`, or `token`:
+
+```yaml
+routes:
+  github:
+    target: relay
+    verify:
+      github:
+        secret: '{{ env "GH_WEBHOOK_SECRET" }}' # HMAC-SHA256 in X-Hub-Signature-256
+  gitlab:
+    target: relay
+    verify:
+      token: # shared secret, presented verbatim in a header
+        header: X-Gitlab-Token
+        secret: '{{ env "GL_WEBHOOK_TOKEN" }}'
+  custom:
+    target: relay
+    verify:
+      hmac: # generic HMAC
+        header: X-Signature
+        algo: sha256 # sha256 (default) | sha512
+        encoding: hex # hex (default) | base64
+        prefix: "sha256=" # stripped before decoding
+        secret: '{{ env "HMAC_SECRET" }}'
+```
+
+`secret` accepts one value or a list (each is tried, so secrets rotate without
+downtime). A failed or missing signature is a quiet `401`. Comparisons are
+constant-time; secrets are never exposed to `whenExpr` or templates.
+
 ## SMTP ingestion
 
 chaski can also accept notifications over **SMTP**, so devices that can only send

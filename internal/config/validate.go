@@ -136,12 +136,13 @@ func renderEnv(rc *RouteConfig) error {
 		if r.Verify == nil {
 			continue
 		}
-		for i, secret := range r.Verify.Secret {
+		secrets := r.Verify.Secrets()
+		for i, secret := range secrets {
 			v, err := render(secret, fmt.Sprintf("route %q verify secret", name))
 			if err != nil {
 				return err
 			}
-			r.Verify.Secret[i] = v
+			secrets[i] = v
 		}
 	}
 	return nil
