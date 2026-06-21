@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.0](https://github.com/home-operations/chaski/compare/0.1.2...0.2.0) (2026-06-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** model verify as a github|hmac|token union ([#23](https://github.com/home-operations/chaski/issues/23))
+* **server:** serve webhooks at /hooks/{route} ([#21](https://github.com/home-operations/chaski/issues/21))
+
+### Features
+
+* **config:** model verify as a github|hmac|token union ([#23](https://github.com/home-operations/chaski/issues/23)) ([0d30d44](https://github.com/home-operations/chaski/commit/0d30d44f51aecfb71d27c6ef28ff249bb700656c))
+* **config:** self-documenting schema + route/target descriptions ([#22](https://github.com/home-operations/chaski/issues/22)) ([6552a7c](https://github.com/home-operations/chaski/commit/6552a7c00cb37aa82a0981819a7e4874c8c8eb38))
+* **server:** serve webhooks at /hooks/{route} ([#21](https://github.com/home-operations/chaski/issues/21)) ([eb72be9](https://github.com/home-operations/chaski/commit/eb72be9c6a8921106b071b71309ae80687aa7f2f))
+
+
+### Bug Fixes
+
+* **config:** tighten route target validation ([#19](https://github.com/home-operations/chaski/issues/19)) ([6f31e6a](https://github.com/home-operations/chaski/commit/6f31e6a682649ccae7829787b3a62ab1126d9955))
+
 ## [0.1.2](https://github.com/home-operations/chaski/compare/0.1.1...0.1.2) (2026-06-21)
 
 
