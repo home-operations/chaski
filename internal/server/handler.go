@@ -91,14 +91,31 @@ func (s *Server) handleNotify(w http.ResponseWriter, r *http.Request) {
 	})
 	s.observeRelay(r.PathValue("route"), res)
 
+	// A debug breadcrumb on every response: the outcome, with the skip sub-reason
+	// (gate vs no_targets) that the bare status code can't convey.
+	w.Header().Set("X-Chaski-Result", resultLabel(res))
+
 	switch {
 	case res.Plan != nil:
 		writeJSON(w, res.Status, res.Plan)
+	case (res.Kind == relay.GateError || res.Kind == relay.RenderError) && res.Err != nil:
+		// Operator-fault: surface the cause. These carry no payload body or target
+		// credentials (unlike a relay/502 error, which stays generic below).
+		writeError(w, res.Status, res.Err.Error())
 	case res.Status >= http.StatusInternalServerError:
 		writeError(w, res.Status, http.StatusText(res.Status))
 	default:
 		w.WriteHeader(res.Status)
 	}
+}
+
+// resultLabel renders a relay outcome for the X-Chaski-Result header, appending
+// the sub-reason for low-information kinds (e.g. "skipped:gate").
+func resultLabel(res relay.Result) string {
+	if res.Reason != "" {
+		return res.Kind.String() + ":" + res.Reason
+	}
+	return res.Kind.String()
 }
 
 // tokenOK constant-time compares the inbound token against CHASKI_WEBHOOK_TOKEN.

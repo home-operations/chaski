@@ -64,8 +64,11 @@ curl -X POST http://localhost:8080/notify/alertmanager \
 ```
 
 Append `?dryRun=1` to preview the matched targets and rendered fields without
-sending. Check a config before deploying it (the same checks the server runs at
-boot):
+sending — including `"fired": false` when the `whenExpr` gate doesn't match, so
+you can see *why* a route wouldn't act. Every response also carries an
+`X-Chaski-Result` header (`relayed`, `skipped:gate`, `skipped:no_targets`,
+`render_error`, …) so the outcome is visible even on a bodyless status. Check a
+config before deploying it (the same checks the server runs at boot):
 
 ```sh
 chaski validate -c ./chaski.yaml
