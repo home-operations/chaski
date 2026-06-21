@@ -18,9 +18,9 @@ func TestWebhookRejectedMetric(t *testing.T) {
 		target  string
 		body    string
 	}{
-		{"unauthorized", map[string]string{"Content-Type": jsonCT}, "/notify/alertmanager", `{}`},
-		{"not_found", authed, "/notify/ghost", `{}`},
-		{"decode", map[string]string{"Content-Type": "text/plain", "Authorization": "Bearer tok"}, "/notify/alertmanager", "hi"},
+		{"unauthorized", map[string]string{"Content-Type": jsonCT}, "/hooks/alertmanager", `{}`},
+		{"not_found", authed, "/hooks/ghost", `{}`},
+		{"decode", map[string]string{"Content-Type": "text/plain", "Authorization": "Bearer tok"}, "/hooks/alertmanager", "hi"},
 	}
 	for _, c := range cases {
 		t.Run(c.reason, func(t *testing.T) {

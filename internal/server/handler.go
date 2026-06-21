@@ -13,14 +13,14 @@ import (
 	"github.com/home-operations/chaski/internal/relay"
 )
 
-// handler builds the public webhook mux: POST /notify/{route} (+ ?dryRun=1),
+// handler builds the public webhook mux: POST /hooks/{route} (+ ?dryRun=1),
 // everything else 404. Middleware adds metrics, security headers, and panic
 // recovery.
 func (s *Server) handler() http.Handler {
 	mux := http.NewServeMux()
-	// Registered method-agnostic (not "POST /notify/{route}") so a non-POST gets
+	// Registered method-agnostic (not "POST /hooks/{route}") so a non-POST gets
 	// an explicit 405 rather than being swallowed by the "/" catch-all's 404.
-	mux.HandleFunc("/notify/{route}", s.handleNotify)
+	mux.HandleFunc("/hooks/{route}", s.handleHook)
 	mux.HandleFunc("/", handleNotFound)
 
 	var h http.Handler = mux
@@ -38,9 +38,9 @@ func handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// handleNotify runs the inbound pipeline: token auth → route lookup → body cap →
+// handleHook runs the inbound pipeline: token auth → route lookup → body cap →
 // signature verify → decode → relay, then maps the result to a status.
-func (s *Server) handleNotify(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleHook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
 		webhookRejected.WithLabelValues("method").Inc()

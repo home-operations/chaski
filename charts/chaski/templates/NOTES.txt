@@ -32,13 +32,13 @@ Send a webhook from inside the cluster (replace <route>):
   kubectl -n {{ .Release.Namespace }} run chaski-curl --rm -it --restart=Never --image=curlimages/curl -- \
     curl -fsS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
       --data '{"status":"firing"}' \
-      "http://{{ include "chaski.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/notify/<route>?dryRun=1"
+      "http://{{ include "chaski.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/hooks/<route>?dryRun=1"
 {{- else }}
 
   kubectl -n {{ .Release.Namespace }} run chaski-curl --rm -it --restart=Never --image=curlimages/curl -- \
     curl -fsS -X POST -H "Content-Type: application/json" \
       --data '{"status":"firing"}' \
-      "http://{{ include "chaski.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/notify/<route>?dryRun=1"
+      "http://{{ include "chaski.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/hooks/<route>?dryRun=1"
 {{- end }}
 
 Validate the config (the same checks chaski runs at boot):

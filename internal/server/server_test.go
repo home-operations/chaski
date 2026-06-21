@@ -110,14 +110,14 @@ func TestMetricsEndpoint(t *testing.T) {
 }
 
 func TestUnknownRouteIs404(t *testing.T) {
-	rec := do(newServer(emptyEngine(t), ""), http.MethodPost, "/notify/nope", "{}", map[string]string{"Content-Type": jsonCT})
+	rec := do(newServer(emptyEngine(t), ""), http.MethodPost, "/hooks/nope", "{}", map[string]string{"Content-Type": jsonCT})
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rec.Code)
 	}
 }
 
 func TestNonPostIs405(t *testing.T) {
-	rec := do(newServer(emptyEngine(t), ""), http.MethodGet, "/notify/x", "", nil)
+	rec := do(newServer(emptyEngine(t), ""), http.MethodGet, "/hooks/x", "", nil)
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status = %d, want 405", rec.Code)
 	}
@@ -127,13 +127,13 @@ func TestTokenAuth(t *testing.T) {
 	srv := newServer(engineWithRoute(t, &fakeNotifier{}), "s3cr3t")
 	body := `{"status":"firing"}`
 
-	if rec := do(srv, http.MethodPost, "/notify/alertmanager", body, map[string]string{"Content-Type": jsonCT}); rec.Code != http.StatusUnauthorized {
+	if rec := do(srv, http.MethodPost, "/hooks/alertmanager", body, map[string]string{"Content-Type": jsonCT}); rec.Code != http.StatusUnauthorized {
 		t.Errorf("no token: status = %d, want 401", rec.Code)
 	}
-	if rec := do(srv, http.MethodPost, "/notify/alertmanager", body, map[string]string{"Content-Type": jsonCT, "Authorization": "Bearer wrong"}); rec.Code != http.StatusUnauthorized {
+	if rec := do(srv, http.MethodPost, "/hooks/alertmanager", body, map[string]string{"Content-Type": jsonCT, "Authorization": "Bearer wrong"}); rec.Code != http.StatusUnauthorized {
 		t.Errorf("wrong token: status = %d, want 401", rec.Code)
 	}
-	if rec := do(srv, http.MethodPost, "/notify/alertmanager", body, map[string]string{"Content-Type": jsonCT, "Authorization": "Bearer s3cr3t"}); rec.Code != http.StatusOK {
+	if rec := do(srv, http.MethodPost, "/hooks/alertmanager", body, map[string]string{"Content-Type": jsonCT, "Authorization": "Bearer s3cr3t"}); rec.Code != http.StatusOK {
 		t.Errorf("correct token: status = %d, want 200", rec.Code)
 	}
 }
@@ -143,7 +143,7 @@ func TestTokenAuth(t *testing.T) {
 // (the common case for cluster-internal senders).
 func TestNoTokenConfiguredAcceptsUnauthenticated(t *testing.T) {
 	srv := newServer(engineWithRoute(t, &fakeNotifier{}), "")
-	rec := do(srv, http.MethodPost, "/notify/alertmanager", `{"status":"firing"}`,
+	rec := do(srv, http.MethodPost, "/hooks/alertmanager", `{"status":"firing"}`,
 		map[string]string{"Content-Type": jsonCT})
 	if rec.Code != http.StatusOK {
 		t.Errorf("no token configured: status = %d, want 200 (auth disabled)", rec.Code)
@@ -154,10 +154,10 @@ func TestRelayAndSkipStatuses(t *testing.T) {
 	fn := &fakeNotifier{}
 	srv := newServer(engineWithRoute(t, fn), "")
 
-	if rec := do(srv, http.MethodPost, "/notify/alertmanager", `{"status":"firing"}`, map[string]string{"Content-Type": jsonCT}); rec.Code != http.StatusOK {
+	if rec := do(srv, http.MethodPost, "/hooks/alertmanager", `{"status":"firing"}`, map[string]string{"Content-Type": jsonCT}); rec.Code != http.StatusOK {
 		t.Errorf("firing: status = %d, want 200", rec.Code)
 	}
-	if rec := do(srv, http.MethodPost, "/notify/alertmanager", `{"status":"resolved"}`, map[string]string{"Content-Type": jsonCT}); rec.Code != http.StatusNoContent {
+	if rec := do(srv, http.MethodPost, "/hooks/alertmanager", `{"status":"resolved"}`, map[string]string{"Content-Type": jsonCT}); rec.Code != http.StatusNoContent {
 		t.Errorf("resolved: status = %d, want 204", rec.Code)
 	}
 	if fn.calls != 1 {
@@ -168,7 +168,7 @@ func TestRelayAndSkipStatuses(t *testing.T) {
 func TestDryRunReturnsPlanWithoutSending(t *testing.T) {
 	fn := &fakeNotifier{}
 	srv := newServer(engineWithRoute(t, fn), "")
-	rec := do(srv, http.MethodPost, "/notify/alertmanager?dryRun=1", `{"status":"firing"}`, map[string]string{"Content-Type": jsonCT})
+	rec := do(srv, http.MethodPost, "/hooks/alertmanager?dryRun=1", `{"status":"firing"}`, map[string]string{"Content-Type": jsonCT})
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -184,11 +184,11 @@ func TestDryRunReturnsPlanWithoutSending(t *testing.T) {
 func TestResultHeader(t *testing.T) {
 	srv := newServer(engineWithRoute(t, &fakeNotifier{}), "")
 
-	rec := do(srv, http.MethodPost, "/notify/alertmanager", `{"status":"firing"}`, map[string]string{"Content-Type": jsonCT})
+	rec := do(srv, http.MethodPost, "/hooks/alertmanager", `{"status":"firing"}`, map[string]string{"Content-Type": jsonCT})
 	if got := rec.Header().Get("X-Chaski-Result"); got != "relayed" {
 		t.Errorf("relayed header = %q, want relayed", got)
 	}
-	rec = do(srv, http.MethodPost, "/notify/alertmanager", `{"status":"resolved"}`, map[string]string{"Content-Type": jsonCT})
+	rec = do(srv, http.MethodPost, "/hooks/alertmanager", `{"status":"resolved"}`, map[string]string{"Content-Type": jsonCT})
 	if got := rec.Header().Get("X-Chaski-Result"); got != "skipped:gate" {
 		t.Errorf("gate-false header = %q, want skipped:gate", got)
 	}
@@ -196,7 +196,7 @@ func TestResultHeader(t *testing.T) {
 
 func TestDryRunGateFalseReturnsPlan(t *testing.T) {
 	srv := newServer(engineWithRoute(t, &fakeNotifier{}), "")
-	rec := do(srv, http.MethodPost, "/notify/alertmanager?dryRun=1", `{"status":"resolved"}`, map[string]string{"Content-Type": jsonCT})
+	rec := do(srv, http.MethodPost, "/hooks/alertmanager?dryRun=1", `{"status":"resolved"}`, map[string]string{"Content-Type": jsonCT})
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200 (gate-false dry run still previews)", rec.Code)
@@ -226,7 +226,7 @@ routes:
 	}
 	srv := newServer(e, "")
 
-	rec := do(srv, http.MethodPost, "/notify/r", `{"x":"scalar"}`, map[string]string{"Content-Type": jsonCT})
+	rec := do(srv, http.MethodPost, "/hooks/r", `{"x":"scalar"}`, map[string]string{"Content-Type": jsonCT})
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500", rec.Code)
 	}
@@ -241,7 +241,7 @@ routes:
 
 func TestUnsupportedContentTypeIs400(t *testing.T) {
 	srv := newServer(engineWithRoute(t, &fakeNotifier{}), "")
-	rec := do(srv, http.MethodPost, "/notify/alertmanager", "hello", map[string]string{"Content-Type": "text/plain"})
+	rec := do(srv, http.MethodPost, "/hooks/alertmanager", "hello", map[string]string{"Content-Type": "text/plain"})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
 	}
