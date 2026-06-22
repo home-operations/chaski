@@ -59,7 +59,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	var metricsSrv *http.Server
 	if s.cfg.MetricsEnabled {
-		metricsSrv = newHTTPServer(fmt.Sprintf(":%d", s.cfg.MetricsPort), metricsHandler())
+		metricsSrv = newHTTPServer(fmt.Sprintf(":%d", s.cfg.MetricsPort), s.accessLog(metricsHandler()))
 		g.Go(func() error { return serve(metricsSrv, "metrics", s.log) })
 	}
 
