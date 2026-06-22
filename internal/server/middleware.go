@@ -61,7 +61,8 @@ func recoverer(log *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// observe records Prometheus metrics and emits the per-request access log.
+// observe records Prometheus metrics and emits the per-request access log. It
+// wraps the public webhook listener.
 func (s *Server) observe(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -73,15 +74,45 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		method := methodLabel(r.Method)
 		httpRequests.WithLabelValues(method, statusClass(rec.status)).Inc()
 		httpDuration.WithLabelValues(method).Observe(duration.Seconds())
-
-		if !s.cfg.DisableRequestLogs {
-			s.log.Info("request",
-				"method", r.Method,
-				"path", r.URL.Path,
-				"status", rec.status,
-				"remote", r.RemoteAddr,
-				"duration", duration.String(),
-			)
-		}
+		s.logRequest(r, rec.status, duration)
 	})
+}
+
+// accessLog emits the per-request access log WITHOUT recording request metrics.
+// It wraps the monitoring listener, so /metrics scrapes and /healthz probes are
+// logged (at debug — see logRequest) without inflating the request counters.
+func (s *Server) accessLog(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		s.logRequest(r, rec.status, time.Since(start))
+	})
+}
+
+// monitoringPaths are the scrape/probe endpoints whose access log is noise at
+// the scrape/probe cadence, so it is emitted at Debug — visible only under
+// CHASKI_LOG_LEVEL=debug — rather than at Info with real traffic.
+var monitoringPaths = map[string]struct{}{
+	"/metrics": {}, "/healthz": {}, "/readyz": {},
+}
+
+// logRequest emits the access log for one request at the path-appropriate level
+// (Debug for the monitoring endpoints, Info otherwise), unless request logs are
+// disabled entirely.
+func (s *Server) logRequest(r *http.Request, status int, d time.Duration) {
+	if s.cfg.DisableRequestLogs {
+		return
+	}
+	level := slog.LevelInfo
+	if _, ok := monitoringPaths[r.URL.Path]; ok {
+		level = slog.LevelDebug
+	}
+	s.log.Log(r.Context(), level, "request",
+		"method", r.Method,
+		"path", r.URL.Path,
+		"status", status,
+		"remote", r.RemoteAddr,
+		"duration", d.String(),
+	)
 }

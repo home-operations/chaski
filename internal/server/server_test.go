@@ -93,6 +93,46 @@ func do(srv *Server, method, target, body string, headers map[string]string) *ht
 
 const jsonCT = "application/json"
 
+// capHandler records the level of each emitted log record.
+type capHandler struct{ levels *[]slog.Level }
+
+func (h capHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (h capHandler) WithAttrs([]slog.Attr) slog.Handler       { return h }
+func (h capHandler) WithGroup(string) slog.Handler            { return h }
+func (h capHandler) Handle(_ context.Context, r slog.Record) error {
+	*h.levels = append(*h.levels, r.Level)
+	return nil
+}
+
+// TestRequestLogLevels: monitoring endpoints log at Debug, real traffic at Info,
+// and DisableRequestLogs silences everything.
+func TestRequestLogLevels(t *testing.T) {
+	cases := map[string]slog.Level{
+		"/healthz": slog.LevelDebug,
+		"/readyz":  slog.LevelDebug,
+		"/metrics": slog.LevelDebug,
+		"/hooks/x": slog.LevelInfo,
+		"/":        slog.LevelInfo,
+	}
+	for path, want := range cases {
+		var levels []slog.Level
+		srv := &Server{cfg: &config.Config{}, log: slog.New(capHandler{&levels})}
+		srv.accessLog(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})).
+			ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, path, nil))
+		if len(levels) != 1 || levels[0] != want {
+			t.Errorf("path %q: levels=%v, want [%v]", path, levels, want)
+		}
+	}
+
+	var levels []slog.Level
+	srv := &Server{cfg: &config.Config{DisableRequestLogs: true}, log: slog.New(capHandler{&levels})}
+	srv.accessLog(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})).
+		ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	if len(levels) != 0 {
+		t.Errorf("DisableRequestLogs: emitted %d logs, want 0", len(levels))
+	}
+}
+
 func TestHealthz(t *testing.T) {
 	rec := httptest.NewRecorder()
 	metricsHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))

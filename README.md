@@ -369,7 +369,9 @@ from the environment:
 A JSON Schema for the route config is published at
 [`config.schema.json`](config.schema.json) — point your editor's YAML language
 server at it for completion and validation. The metrics port serves
-`GET /metrics` (Prometheus) and `GET /healthz`.
+`GET /metrics` (Prometheus) and `GET /healthz`; requests to these
+monitoring endpoints are logged at `debug`, so scrapes and probes don't fill the
+`info` access log (set `CHASKI_LOG_LEVEL=debug` to see them).
 
 Key metrics:
 
