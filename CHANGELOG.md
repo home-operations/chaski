@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1](https://github.com/home-operations/chaski/compare/0.2.0...0.2.1) (2026-06-24)
+
+
+### Features
+
+* **container:** update image mirror.gcr.io/curlimages/curl (8.20.0 → 8.21.0) ([#30](https://github.com/home-operations/chaski/issues/30)) ([8abb241](https://github.com/home-operations/chaski/commit/8abb241867a2664a01d74244b7a0fcbb53c0dd6b))
+* **server:** log monitoring-endpoint requests at debug ([#26](https://github.com/home-operations/chaski/issues/26)) ([f0eba28](https://github.com/home-operations/chaski/commit/f0eba285ea33d4ba2199f4cd61df1152abe1de46))
+
+
+### Miscellaneous Chores
+
+* add minimumGroupSize to Go toolchain configuration ([53a15d2](https://github.com/home-operations/chaski/commit/53a15d23ac0f1130419090ab3463783b89700009))
+* **mise:** Update tool oxfmt (0.55.0 → 0.56.0) ([#28](https://github.com/home-operations/chaski/issues/28)) ([775fba5](https://github.com/home-operations/chaski/commit/775fba50e4b0d54e0a64c5bfef777ac707eab262))
+
 ## [0.2.0](https://github.com/home-operations/chaski/compare/0.1.2...0.2.0) (2026-06-21)
 
 
