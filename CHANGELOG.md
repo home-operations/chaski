@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/home-operations/chaski/compare/0.2.1...0.2.2) (2026-07-02)
+
+
+### Miscellaneous Chores
+
+* **mise:** Update tool oxfmt (0.56.0 → 0.57.0) ([#34](https://github.com/home-operations/chaski/issues/34)) ([d2f623b](https://github.com/home-operations/chaski/commit/d2f623bbe347a9b08ade28b7589d6d5591cecf53))
+* **renovate:** inherit shared toolchain + chart-docs presets ([#31](https://github.com/home-operations/chaski/issues/31)) ([753f6db](https://github.com/home-operations/chaski/commit/753f6dbafcbc19f8b23d121fed0ab3adb8315798))
+
 ## [0.2.1](https://github.com/home-operations/chaski/compare/0.2.0...0.2.1) (2026-06-24)
 
 
