@@ -18,10 +18,11 @@ func mustCompile(t *testing.T, expr string) *Gate {
 func sampleInput() Input {
 	return Input{
 		Payload: map[string]any{
-			"status": "firing",
-			"count":  float64(10), // JSON numbers decode as float64 (CEL double)
-			"msg":    "abcdef",
-			"name":   "world",
+			"status":    "firing",
+			"count":     float64(10), // JSON numbers decode as float64 (CEL double)
+			"msg":       "abcdef",
+			"name":      "world",
+			"client_ip": "10.1.2.3",
 		},
 		Headers: map[string]string{"x-source": "ci"},
 		Query:   map[string]string{"dry": "1"},
@@ -91,6 +92,40 @@ func TestHelpers(t *testing.T) {
 	}
 	if !eval(t, `truncate(payload.msg, 100) == "abcdef"`) {
 		t.Error(`truncate beyond length should return the whole string`)
+	}
+}
+
+func TestNetworkExtension(t *testing.T) {
+	tests := map[string]bool{
+		`isIP(string(payload.client_ip))`:                        true,
+		`isIP("not-an-ip")`:                                      false,
+		`cidr("10.0.0.0/8").containsIP(ip(payload.client_ip))`:   true,
+		`cidr("10.0.0.0/8").containsIP(payload.client_ip)`:       true, // string overload
+		`cidr("192.168.0.0/16").containsIP(payload.client_ip)`:   false,
+		`isCIDR("10.0.0.0/8") && !isCIDR(payload.client_ip)`:     true,
+		`ip(payload.client_ip).family() == 4`:                    true,
+		`!ip(payload.client_ip).isLoopback()`:                    true,
+		`cidr("10.0.0.0/8").containsCIDR(cidr("10.1.0.0/16"))`:   true,
+		`cidr("10.0.0.0/8").containsCIDR(cidr("172.16.0.0/12"))`: false,
+	}
+	for expr, want := range tests {
+		if got := eval(t, expr); got != want {
+			t.Errorf("eval(%q) = %v, want %v", expr, got, want)
+		}
+	}
+}
+
+func TestEncodersExtension(t *testing.T) {
+	if !eval(t, `base64.encode(bytes(payload.msg)) == "YWJjZGVm"`) {
+		t.Error(`base64.encode(bytes("abcdef")) != "YWJjZGVm"`)
+	}
+	if !eval(t, `string(base64.decode("YWJjZGVm")) == payload.msg`) {
+		t.Error(`base64.decode round-trip failed`)
+	}
+	// EncodersVersion(0) pins base64 only: json.encode must not exist (toJSON
+	// remains the single JSON spelling).
+	if _, err := Compile(`json.encode(payload) != ""`); err == nil {
+		t.Error(`json.encode compiled; want unknown-function error (EncodersVersion(0))`)
 	}
 }
 

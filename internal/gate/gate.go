@@ -123,6 +123,10 @@ func newEnv() (*cel.Env, error) {
 		cel.Variable("route", cel.StringType),
 		cel.Variable("now", cel.TimestampType),
 		ext.Strings(),
+		// Kubernetes-style ip()/cidr()/isIP()/isCIDR() + containment checks.
+		ext.Network(),
+		// Version 0 = base64.encode/decode only; JSON stays on toJSON below.
+		ext.Encoders(ext.EncodersVersion(0)),
 		toJSONFunc(),
 		truncateFunc(),
 	)
