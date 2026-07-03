@@ -9,7 +9,7 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.24.0
 	github.com/go-sprout/sprout v1.0.3
-	github.com/google/cel-go v0.28.1
+	github.com/google/cel-go v0.29.1
 	github.com/invopop/jsonschema v0.14.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/unraid/apprise-go v0.2.6
