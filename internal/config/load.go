@@ -192,10 +192,18 @@ func decodeFragment(data []byte, name string) (*RouteConfig, error) {
 		return nil, fmt.Errorf("config: parsing %q: %w", name, err)
 	}
 
-	for _, r := range rc.Routes {
+	// A valueless key ("routes:\n  r:\n") decodes to a nil entry; reject it with
+	// a clear, provenance-bearing error rather than panicking downstream.
+	for rn, r := range rc.Routes {
+		if r == nil {
+			return nil, fmt.Errorf("config: %q: route %q has no configuration", name, rn)
+		}
 		r.Source = name
 	}
-	for _, t := range rc.Targets {
+	for tn, t := range rc.Targets {
+		if t == nil {
+			return nil, fmt.Errorf("config: %q: target %q has no configuration", name, tn)
+		}
 		t.Source = name
 	}
 	if len(rc.Templates) > 0 {

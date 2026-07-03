@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -364,6 +365,54 @@ routes:
 			t.Errorf("kind=%v status=%d, want RelayError 502", res.Kind, res.Status)
 		}
 	})
+}
+
+// siblingNotifier fails target "a" instantly and makes target "b" a slow send
+// that records whether it ran to completion or was cancelled mid-flight.
+type siblingNotifier struct {
+	mu         sync.Mutex
+	bDelivered bool
+	bCancelled bool
+}
+
+func (f *siblingNotifier) Send(ctx context.Context, targetURL, _, _ string, _ map[string]string) error {
+	if strings.Contains(targetURL, "//a@") {
+		return errors.New("boom") // fast failure
+	}
+	select {
+	case <-time.After(100 * time.Millisecond): // in-flight send that outlasts a's failure
+		f.mu.Lock()
+		f.bDelivered = true
+		f.mu.Unlock()
+		return nil
+	case <-ctx.Done():
+		f.mu.Lock()
+		f.bCancelled = true
+		f.mu.Unlock()
+		return ctx.Err()
+	}
+}
+
+func TestFanOutFailureDoesNotCancelSiblings(t *testing.T) {
+	const y = `
+targets:
+  a: { apprise: { url: 'pover://a@t/' } }
+  b: { apprise: { url: 'pover://b@t/' } }
+routes:
+  r: { target: [a, b], message: 'hi' }
+`
+	fn := &siblingNotifier{}
+	res := handle(route(t, engine(t, y, fn)), map[string]any{}, false)
+	// a's failure still surfaces as a 502...
+	if res.Kind != relay.RelayError || res.Status != 502 {
+		t.Errorf("kind=%v status=%d, want RelayError 502", res.Kind, res.Status)
+	}
+	// ...but b's send must have completed, not been cancelled by a.
+	fn.mu.Lock()
+	defer fn.mu.Unlock()
+	if !fn.bDelivered || fn.bCancelled {
+		t.Errorf("sibling delivered=%v cancelled=%v, want delivered and not cancelled", fn.bDelivered, fn.bCancelled)
+	}
 }
 
 func TestResponseStatusOverride(t *testing.T) {
