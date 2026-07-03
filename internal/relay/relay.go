@@ -38,8 +38,9 @@ type Options struct {
 // template, verify block, or target reference.
 func Build(rc *config.RouteConfig, cfg *config.Config, opts Options) (*Engine, error) {
 	sinkOpts := sink.Options{
-		Notifier:     opts.Notifier,
-		DefaultRetry: sink.RetryPolicy{Attempts: cfg.RetryAttempts, Backoff: cfg.RetryBackoff},
+		Notifier:       opts.Notifier,
+		DefaultRetry:   sink.RetryPolicy{Attempts: cfg.RetryAttempts, Backoff: cfg.RetryBackoff},
+		DefaultTimeout: cfg.RequestTimeout, // http target default when it sets no timeout
 	}
 
 	sinks := make(map[string]sink.Sink, len(rc.Targets))
@@ -357,9 +358,12 @@ func (r *Route) fanOut(ctx context.Context, rr rendered, in Input, matched []boo
 		return 0, nil
 	}
 
-	g, gctx := errgroup.WithContext(ctx)
+	// Plain errgroup (not WithContext): one target failing must not cancel the
+	// other targets' in-flight sends and retries — each matched target gets its
+	// full attempt, bounded only by the request ctx. Wait returns the first error.
+	var g errgroup.Group
 	for _, j := range jobs {
-		g.Go(func() error { return j.s.Send(gctx, j.msg) })
+		g.Go(func() error { return j.s.Send(ctx, j.msg) })
 	}
 	return len(jobs), g.Wait()
 }

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
@@ -60,6 +61,13 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	// apprise-go sends through the shared http.DefaultClient, which has no
+	// timeout and takes no context — so a hung notification endpoint would pin a
+	// goroutine and socket indefinitely, past the request deadline. Bounding the
+	// default client here is the only in-process way to cap those sends. chaski's
+	// own HTTP sink uses its own client, so this affects only apprise delivery.
+	http.DefaultClient.Timeout = cfg.RequestTimeout
 
 	logger := newLogger(cfg)
 	slog.SetDefault(logger)

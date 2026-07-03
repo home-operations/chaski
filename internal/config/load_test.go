@@ -203,6 +203,27 @@ func TestDuplicateNamesAreFatal(t *testing.T) {
 	}
 }
 
+func TestNilEntryIsErrorNotPanic(t *testing.T) {
+	// A valueless route/target key decodes to a nil entry; it must yield a clean,
+	// provenance-bearing config error rather than a nil-pointer panic downstream.
+	for _, tc := range []struct{ name, body, want string }{
+		{"route", "targets:\n  t: {apprise: {url: 'pover://u@t/'}}\nroutes:\n  r:\n", `route "r" has no configuration`},
+		{"target", "targets:\n  t:\n", `target "t" has no configuration`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			write(t, filepath.Join(dir, "c.yaml"), tc.body)
+			_, err := LoadRouteConfig(dir)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("err = %v, want containing %q", err, tc.want)
+			}
+			if !strings.Contains(err.Error(), "c.yaml") {
+				t.Errorf("error should name the fragment: %v", err)
+			}
+		})
+	}
+}
+
 func TestDuplicateTargetInRouteRejected(t *testing.T) {
 	dir := t.TempDir()
 	write(t, filepath.Join(dir, "c.yaml"),
