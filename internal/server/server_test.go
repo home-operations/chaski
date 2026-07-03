@@ -133,9 +133,10 @@ func TestRequestLogLevels(t *testing.T) {
 	}
 }
 
-func TestHealthz(t *testing.T) {
+func TestHealthzServedEvenWhenMetricsDisabled(t *testing.T) {
 	rec := httptest.NewRecorder()
-	metricsHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	// metrics off: /healthz must still work, so probes keep the pod Ready.
+	metricsHandler(false).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"status":"ok"`) {
 		t.Fatalf("healthz: %d %q", rec.Code, rec.Body.String())
 	}
@@ -143,9 +144,15 @@ func TestHealthz(t *testing.T) {
 
 func TestMetricsEndpoint(t *testing.T) {
 	rec := httptest.NewRecorder()
-	metricsHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	metricsHandler(true).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("metrics status = %d", rec.Code)
+	}
+	// metrics off: /metrics is not registered (404).
+	rec = httptest.NewRecorder()
+	metricsHandler(false).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("metrics disabled: status = %d, want 404", rec.Code)
 	}
 }
 

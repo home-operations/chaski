@@ -57,11 +57,11 @@ func (s *Server) Run(ctx context.Context) error {
 	webhookSrv := newHTTPServer(fmt.Sprintf(":%d", s.cfg.HTTPPort), s.handler())
 	g.Go(func() error { return serve(webhookSrv, "webhook", s.log) })
 
-	var metricsSrv *http.Server
-	if s.cfg.MetricsEnabled {
-		metricsSrv = newHTTPServer(fmt.Sprintf(":%d", s.cfg.MetricsPort), s.accessLog(metricsHandler()))
-		g.Go(func() error { return serve(metricsSrv, "metrics", s.log) })
-	}
+	// The monitoring listener always runs: it serves /healthz (liveness/readiness)
+	// regardless of whether Prometheus /metrics is enabled, so disabling metrics
+	// can't leave the pod without a health endpoint. MetricsEnabled gates /metrics.
+	monitoringSrv := newHTTPServer(fmt.Sprintf(":%d", s.cfg.MetricsPort), s.accessLog(metricsHandler(s.cfg.MetricsEnabled)))
+	g.Go(func() error { return serve(monitoringSrv, "monitoring", s.log) })
 
 	var smtpSrv *smtp.Server
 	if s.cfg.SMTPEnabled {
@@ -75,7 +75,7 @@ func (s *Server) Run(ctx context.Context) error {
 		sctx, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTimeout)
 		defer cancel()
 		shutdown(sctx, webhookSrv)
-		shutdown(sctx, metricsSrv)
+		shutdown(sctx, monitoringSrv)
 		smtpSrv.Shutdown(sctx)
 		return nil
 	})
