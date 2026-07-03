@@ -64,10 +64,14 @@ func (s *Server) observeRelay(route string, res relay.Result) {
 // metricsHandler serves Prometheus metrics and the health/readiness probe on
 // the dedicated monitoring listener, so scraping and probing share one port
 // (8081 by default) separate from the public webhook port.
-func metricsHandler() http.Handler {
+func metricsHandler(metricsEnabled bool) http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("GET /metrics", promhttp.Handler())
+	// /healthz is always served: the liveness/readiness probe must work even when
+	// Prometheus metrics are disabled, so the pod can still become Ready.
 	mux.HandleFunc("GET /healthz", handleHealth)
+	if metricsEnabled {
+		mux.Handle("GET /metrics", promhttp.Handler())
+	}
 	return mux
 }
 

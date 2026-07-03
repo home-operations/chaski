@@ -68,13 +68,17 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 
-		next.ServeHTTP(rec, r)
+		// Record in a defer so a panic recovered by the inner recoverer (which
+		// writes 500 to rec) is still counted and access-logged, with its status.
+		defer func() {
+			duration := time.Since(start)
+			method := methodLabel(r.Method)
+			httpRequests.WithLabelValues(method, statusClass(rec.status)).Inc()
+			httpDuration.WithLabelValues(method).Observe(duration.Seconds())
+			s.logRequest(r, rec.status, duration)
+		}()
 
-		duration := time.Since(start)
-		method := methodLabel(r.Method)
-		httpRequests.WithLabelValues(method, statusClass(rec.status)).Inc()
-		httpDuration.WithLabelValues(method).Observe(duration.Seconds())
-		s.logRequest(r, rec.status, duration)
+		next.ServeHTTP(rec, r)
 	})
 }
 

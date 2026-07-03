@@ -24,9 +24,11 @@ func (s *Server) handler() http.Handler {
 	mux.HandleFunc("/", handleNotFound)
 
 	var h http.Handler = mux
-	h = s.observe(h)
-	h = securityHeaders(h)
+	// observe is outermost so its deferred recording sees the final status —
+	// including a 500 written by the (now inner) recoverer for a panicking handler.
 	h = recoverer(s.log)(h)
+	h = securityHeaders(h)
+	h = s.observe(h)
 	return h
 }
 
