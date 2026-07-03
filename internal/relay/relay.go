@@ -407,12 +407,31 @@ type PlanTarget struct {
 	Skipped bool              `json:"skipped,omitempty"`
 }
 
+// maskValues returns m with every value replaced by a fixed placeholder, so a
+// dry-run plan can show which keys render without disclosing their (possibly
+// secret) rendered values. Returns nil for an empty map (omitted from JSON).
+func maskValues(m map[string]string) map[string]string {
+	if len(m) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(m))
+	for k := range m {
+		out[k] = "***"
+	}
+	return out
+}
+
 func (r *Route) plan(rr rendered, in Input, matched []bool) *Plan {
 	p := &Plan{Route: r.name, Fired: true}
 	for i, t := range r.targets {
 		pt := PlanTarget{Name: t.sink.Name(), Kind: t.sink.Kind()}
 		if msg, ok := messageFor(t.sink, rr, in); ok && matched[i] {
-			pt.Title, pt.Body, pt.Params, pt.Headers = msg.Title, msg.Body, msg.Params, msg.Headers
+			// Title/Body are the notification content the dry run exists to preview.
+			// Params/Headers values are masked (keys kept): a route-level header or
+			// param can render a {{ env }} secret, and an unauthenticated ?dryRun=1
+			// caller must not read it — like the target URL, which is never included.
+			pt.Title, pt.Body = msg.Title, msg.Body
+			pt.Params, pt.Headers = maskValues(msg.Params), maskValues(msg.Headers)
 		} else {
 			pt.Skipped = true
 		}

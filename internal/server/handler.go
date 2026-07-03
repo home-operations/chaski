@@ -105,11 +105,11 @@ func (s *Server) handleHook(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case res.Plan != nil:
 		writeJSON(w, res.Status, res.Plan)
-	case (res.Kind == relay.GateError || res.Kind == relay.RenderError) && res.Err != nil:
-		// Operator-fault: surface the cause. These carry no payload body or target
-		// credentials (unlike a relay/502 error, which stays generic below).
-		writeError(w, res.Status, res.Err.Error())
 	case res.Status >= http.StatusInternalServerError:
+		// Generic to the caller. Gate/render errors wrap the operator's expression
+		// or template source (env-var names, and a value if piped through e.g.
+		// atoi) — that detail goes to logs (observeRelay above), never the client,
+		// which a caller who can trigger a 500 must not read.
 		writeError(w, res.Status, http.StatusText(res.Status))
 	default:
 		w.WriteHeader(res.Status)
