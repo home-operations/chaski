@@ -246,7 +246,7 @@ func TestDryRunGateFalseReturnsPlan(t *testing.T) {
 	}
 }
 
-func TestRenderErrorSurfacesCause(t *testing.T) {
+func TestRenderErrorIsGenericToClient(t *testing.T) {
 	const y = `
 targets: { po: { apprise: { url: 'pover://u@t/' } } }
 routes:
@@ -271,9 +271,14 @@ routes:
 		t.Fatalf("status = %d, want 500", rec.Code)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "message") || strings.Contains(body, "Internal Server Error") {
-		t.Errorf("500 body = %s, want the render cause (not the generic text)", body)
+	// Generic to the client; the operator's template source must not leak.
+	if !strings.Contains(body, "Internal Server Error") {
+		t.Errorf("500 body = %s, want the generic status text", body)
 	}
+	if strings.Contains(body, "Bad") || strings.Contains(body, "payload") {
+		t.Errorf("500 body leaks template source: %s", body)
+	}
+	// The low-cardinality outcome label is still exposed (not the cause).
 	if got := rec.Header().Get("X-Chaski-Result"); got != "render_error" {
 		t.Errorf("header = %q, want render_error", got)
 	}

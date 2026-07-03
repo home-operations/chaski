@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	apprise "github.com/unraid/apprise-go"
 )
@@ -34,9 +35,23 @@ func (appriseNotifier) Send(ctx context.Context, targetURL, body, title string, 
 		opts = append(opts, apprise.WithTitle(title))
 	}
 	if err := a.Send(body, opts...); err != nil {
-		return fmt.Errorf("apprise: send: %w", err)
+		// apprise-go embeds the full, credential-bearing target URL in its error
+		// text. Strip the known URL strings so it can't reach logs. Best-effort:
+		// a fully robust fix needs apprise-go to stop echoing the URL.
+		return fmt.Errorf("apprise: send failed: %s", redactURLs(err.Error(), full, targetURL))
 	}
 	return nil
+}
+
+// redactURLs replaces each non-empty url in text with a placeholder — used to
+// strip credential-bearing target URLs that apprise-go echoes in its errors.
+func redactURLs(text string, urls ...string) string {
+	for _, u := range urls {
+		if u != "" {
+			text = strings.ReplaceAll(text, u, "<redacted-url>")
+		}
+	}
+	return text
 }
 
 // mergeQuery URL-encodes params into rawURL's query (params override existing

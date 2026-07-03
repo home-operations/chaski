@@ -415,6 +415,34 @@ routes:
 	}
 }
 
+// TestDryRunMasksHeaderAndParamValues pins that the dry-run plan shows which
+// route header/param keys render but masks their values, so a {{ env }} secret
+// in a route-level header/param isn't disclosed to a ?dryRun=1 caller.
+func TestDryRunMasksHeaderAndParamValues(t *testing.T) {
+	const my = `
+targets:
+  po: { apprise: { url: 'pover://u@t/' } }
+  bridge: { http: { url: 'https://x.internal/i' } }
+routes:
+  r:
+    target: [po, bridge]
+    message: 'body'
+    params: { priority: '{{ .payload.tok }}' }
+    headers: { X-Auth: 'Bearer {{ .payload.tok }}' }
+`
+	r := route(t, engine(t, my, &fakeNotifier{}))
+	res := handle(r, map[string]any{"tok": "s3cr3t"}, true)
+	if res.Plan == nil {
+		t.Fatal("dry run returned no plan")
+	}
+	if po := planTarget(t, res.Plan, "po"); po.Params["priority"] != "***" {
+		t.Errorf("apprise param value = %q, want masked ***", po.Params["priority"])
+	}
+	if b := planTarget(t, res.Plan, "bridge"); b.Headers["X-Auth"] != "***" {
+		t.Errorf("http header value = %q, want masked ***", b.Headers["X-Auth"])
+	}
+}
+
 func TestResponseStatusOverride(t *testing.T) {
 	const y = `
 targets: { po: { apprise: { url: 'pover://u@t/' } } }

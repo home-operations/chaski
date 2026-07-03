@@ -154,6 +154,37 @@ func TestHTTPSink5xxRetriedThen4xxNot(t *testing.T) {
 	})
 }
 
+// TestHTTPSinkErrorsOmitURL pins that a delivery error never contains the target
+// URL — which may carry credentials in its query — so it can't leak to logs.
+func TestHTTPSinkErrorsOmitURL(t *testing.T) {
+	const secretURL = "http://127.0.0.1:1/ingest?apikey=s3cr3t"
+	t.Run("transport error", func(t *testing.T) {
+		s, _ := New("bridge", httpTarget(secretURL, "POST"), Options{DefaultRetry: fastRetry})
+		err := s.Send(context.Background(), Message{Body: "b"})
+		if err == nil || strings.Contains(err.Error(), "s3cr3t") || strings.Contains(err.Error(), "apikey") {
+			t.Fatalf("error leaks the URL: %v", err)
+		}
+	})
+	t.Run("5xx status", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusBadGateway)
+		}))
+		defer srv.Close()
+		s, _ := New("bridge", httpTarget(srv.URL+"?apikey=s3cr3t", "POST"), Options{DefaultRetry: fastRetry})
+		err := s.Send(context.Background(), Message{Body: "b"})
+		if err == nil || strings.Contains(err.Error(), "s3cr3t") {
+			t.Fatalf("status error leaks the URL query: %v", err)
+		}
+	})
+}
+
+func TestRedactURLs(t *testing.T) {
+	got := redactURLs("send to discord://id/token failed: 401", "discord://id/token")
+	if strings.Contains(got, "token") {
+		t.Errorf("redactURLs left the URL: %q", got)
+	}
+}
+
 func TestNewBuildsSinks(t *testing.T) {
 	a, err := New("po", &config.Target{Apprise: &config.AppriseSink{URL: "pover://u@t/"}}, Options{})
 	if err != nil || a.Kind() != "apprise" {

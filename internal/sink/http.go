@@ -2,9 +2,11 @@ package sink
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/home-operations/chaski/internal/config"
@@ -64,7 +66,9 @@ func (s *httpSink) do(ctx context.Context, msg Message) error {
 	}
 	req, err := http.NewRequestWithContext(ctx, s.method, s.url, body)
 	if err != nil {
-		return Permanent(fmt.Errorf("http: build request: %w", err))
+		// The build error would echo the (possibly credentialed) URL; name the
+		// target instead. Config validation catches a malformed URL earlier.
+		return Permanent(fmt.Errorf("http target %q: build request failed", s.name))
 	}
 	// Route headers first, then the target's static headers — the target wins on
 	// any conflict, so a route header can't override the target's Authorization
@@ -81,7 +85,13 @@ func (s *httpSink) do(ctx context.Context, msg Message) error {
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("http: %s %s: %w", s.method, s.url, err) // transport/timeout — retryable
+		// *url.Error embeds the URL, and s.url may carry credentials in its query;
+		// unwrap to the transport cause and identify the target by name instead.
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = ue.Err
+		}
+		return fmt.Errorf("http target %q: %w", s.name, err) // transport/timeout — retryable
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)
@@ -92,8 +102,8 @@ func (s *httpSink) do(ctx context.Context, msg Message) error {
 	case resp.StatusCode >= 200 && resp.StatusCode < 300:
 		return nil
 	case resp.StatusCode >= 400 && resp.StatusCode < 500:
-		return Permanent(fmt.Errorf("http: %s %s: status %d", s.method, s.url, resp.StatusCode))
+		return Permanent(fmt.Errorf("http target %q: status %d", s.name, resp.StatusCode))
 	default:
-		return fmt.Errorf("http: %s %s: status %d", s.method, s.url, resp.StatusCode) // 5xx — retryable
+		return fmt.Errorf("http target %q: status %d", s.name, resp.StatusCode) // 5xx — retryable
 	}
 }
