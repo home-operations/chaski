@@ -175,6 +175,13 @@ exception is the per-route gate `whenExpr`, a
 [CEL](https://github.com/google/cel-go) boolean. Both see the same variables:
 `payload`, `headers`, `query`, `method`, `route`, `now`.
 
+Beyond core CEL, `whenExpr` has the
+[strings](https://github.com/google/cel-go/tree/master/ext#strings) and
+[network](https://github.com/google/cel-go/tree/master/ext#network) extensions
+(`ip()`, `cidr()`, `isIP()`, `isCIDR()`, containment — e.g.
+`cidr("10.0.0.0/8").containsIP(payload.client_ip)`), `base64.encode`/`base64.decode`,
+`toJSON(v)` (canonical JSON of any value), and `truncate(s, n)` (rune-safe prefix).
+
 A richer **apprise** route — a severity-driven title, a bullet per alert, and a
 priority/sound chosen from the payload:
 
