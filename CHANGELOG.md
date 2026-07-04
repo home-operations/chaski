@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/home-operations/chaski/compare/0.2.3...0.2.4) (2026-07-04)
+
+
+### Features
+
+* **ci:** goreleaser Pro — release binaries + Homebrew cask ([#45](https://github.com/home-operations/chaski/issues/45)) ([516d78e](https://github.com/home-operations/chaski/commit/516d78ed8d7cb159820fc989c532cad1e5fa41aa))
+
 ## [0.2.3](https://github.com/home-operations/chaski/compare/0.2.2...0.2.3) (2026-07-04)
 
 
