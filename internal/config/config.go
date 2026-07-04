@@ -50,6 +50,11 @@ type Config struct {
 
 	// LogFormat selects the slog handler: "json" (default) or "text".
 	LogFormat string `env:"CHASKI_LOG_FORMAT" envDefault:"json"`
+
+	// LogUnknownRoutes logs the body of a POST to a nonexistent /hooks/ route
+	// (the response stays 404) — payload discovery before the route exists.
+	// These bodies are pre-verify; enable deliberately.
+	LogUnknownRoutes bool `env:"CHASKI_LOG_UNKNOWN_ROUTES" envDefault:"false"`
 	// DisableRequestLogs silences the per-request access log.
 	DisableRequestLogs bool `env:"CHASKI_DISABLE_REQUEST_LOGS" envDefault:"false"`
 

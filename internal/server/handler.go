@@ -57,6 +57,9 @@ func (s *Server) handleHook(w http.ResponseWriter, r *http.Request) {
 
 	route, ok := s.engine.Lookup(r.PathValue("route"))
 	if !ok {
+		if s.cfg.LogUnknownRoutes {
+			s.logUnknownRoute(w, r)
+		}
 		webhookRejected.WithLabelValues("not_found").Inc()
 		handleNotFound(w, r)
 		return
@@ -81,6 +84,12 @@ func (s *Server) handleHook(w http.ResponseWriter, r *http.Request) {
 		webhookRejected.WithLabelValues("decode").Inc()
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Post-verify, pre-gate: a whenExpr miss still logs — that is when the
+	// payload is needed most.
+	if route.LogPayload() {
+		s.log.Info("inbound payload", "route", r.PathValue("route"), "payload", payload)
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), s.cfg.RequestTimeout)
@@ -114,6 +123,20 @@ func (s *Server) handleHook(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(res.Status)
 	}
+}
+
+// logUnknownRoute logs the body POSTed to a nonexistent route (behind the
+// global token when one is set; pre-verify by definition, hence opt-in).
+func (s *Server) logUnknownRoute(w http.ResponseWriter, r *http.Request) {
+	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, s.cfg.MaxBodyBytes))
+	if err != nil || len(raw) == 0 {
+		return
+	}
+	var body any = string(raw)
+	if pl, _, err := relay.DecodeBody(r.Header.Get("Content-Type"), raw); err == nil {
+		body = pl
+	}
+	s.log.Info("payload for unknown route", "route", r.PathValue("route"), "payload", body)
 }
 
 // resultLabel renders a relay outcome for the X-Chaski-Result header, appending

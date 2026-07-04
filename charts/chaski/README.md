@@ -76,6 +76,7 @@ Kubernetes: `>=1.25.0-0`
 | config.existingConfigMap | string | `""` | Mount this existing ConfigMap instead of rendering one from `routes`/`targets` (e.g. for a config.d directory of fragments). Set `configPath` to `/config` for directory mode. |
 | config.logFormat | string | `"json"` | Log format (CHASKI_LOG_FORMAT): json or text. |
 | config.logLevel | string | `"info"` | Log level (CHASKI_LOG_LEVEL): debug, info, warn, or error. |
+| config.logUnknownRoutes | bool | `false` | Log bodies POSTed to nonexistent routes, still answering 404 (CHASKI_LOG_UNKNOWN_ROUTES) — payload discovery before a route exists. Pre-verify bodies; enable deliberately, turn off when done. |
 | config.maxBodyBytes | int | `1048576` | Inbound body cap in bytes (CHASKI_MAX_BODY_BYTES). |
 | config.metricsEnabled | bool | `true` | Expose Prometheus metrics + the /healthz probe on `metricsPort` (CHASKI_METRICS_ENABLED). |
 | config.metricsPort | int | `8081` | Metrics + health port (CHASKI_METRICS_PORT); kept off the public webhook port. |

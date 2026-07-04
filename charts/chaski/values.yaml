@@ -45,6 +45,8 @@ config:
   logLevel: info
   # -- Log format (CHASKI_LOG_FORMAT): json or text.
   logFormat: json
+  # -- Log bodies POSTed to nonexistent routes, still answering 404 (CHASKI_LOG_UNKNOWN_ROUTES) — payload discovery before a route exists. Pre-verify bodies; enable deliberately, turn off when done.
+  logUnknownRoutes: false
   # -- Inbound body cap in bytes (CHASKI_MAX_BODY_BYTES).
   maxBodyBytes: 1048576
   # -- Whole-request deadline (CHASKI_REQUEST_TIMEOUT): decode + gate + render + send + retry.

@@ -66,6 +66,12 @@
           "title": "logLevel",
           "type": "string"
         },
+        "logUnknownRoutes": {
+          "default": false,
+          "description": "Log bodies POSTed to nonexistent routes, still answering 404 (CHASKI_LOG_UNKNOWN_ROUTES) — payload discovery before a route exists. Pre-verify bodies; enable deliberately, turn off when done.",
+          "title": "logUnknownRoutes",
+          "type": "boolean"
+        },
         "maxBodyBytes": {
           "default": 1048576,
           "description": "Inbound body cap in bytes (CHASKI_MAX_BODY_BYTES).",

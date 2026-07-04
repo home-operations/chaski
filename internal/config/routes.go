@@ -64,6 +64,10 @@ type Route struct {
 	Verify *Verify `yaml:"verify"`
 	// Response optionally overrides the status a sender sees (relay vs skip).
 	Response *Response `yaml:"response"`
+	// LogPayload logs each verified inbound body for this route, before the
+	// whenExpr gate (so a gate miss still logs) — the payload-capture aid for
+	// building and tuning routes. Bodies can carry secrets; enable deliberately.
+	LogPayload bool `yaml:"logPayload"`
 
 	// Source is the fragment file a route was loaded from (provenance for
 	// errors); set by the loader, never decoded.
