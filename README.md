@@ -112,7 +112,8 @@ A notification through [apprise-go](https://github.com/unraid/apprise-go): the
 URL scheme picks the provider and carries its credentials. A route's `params`
 are URL-encoded onto the target URL's query, so the keys you set are whatever
 the chosen provider recognizes — Pushover, for example, reads `priority`,
-`sound`, `url`, and `url_title`.
+`sound`, `url`, `url_title`, and `format` (`html` | `markdown`; renders the
+message instead of showing it as plain text).
 
 ```yaml
 targets:
