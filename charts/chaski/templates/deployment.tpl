@@ -70,6 +70,8 @@ spec:
               value: {{ .Values.config.logLevel | quote }}
             - name: CHASKI_LOG_FORMAT
               value: {{ .Values.config.logFormat | quote }}
+            - name: CHASKI_LOG_UNKNOWN_ROUTES
+              value: {{ .Values.config.logUnknownRoutes | quote }}
             - name: CHASKI_MAX_BODY_BYTES
               value: {{ .Values.config.maxBodyBytes | int64 | quote }}
             - name: CHASKI_REQUEST_TIMEOUT

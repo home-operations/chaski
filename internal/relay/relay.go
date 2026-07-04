@@ -89,16 +89,17 @@ type routeTarget struct {
 
 // Route is one compiled route.
 type Route struct {
-	name      string
-	gate      *gate.Gate
-	verifier  *verify.Verifier
-	title     *render.Template // nil if absent
-	message   *render.Template // nil if omitted (verbatim forward for http)
-	params    *render.Map
-	headers   *render.Map
-	targets   []routeTarget
-	okStatus  int
-	skipState int
+	name       string
+	gate       *gate.Gate
+	verifier   *verify.Verifier
+	title      *render.Template // nil if absent
+	message    *render.Template // nil if omitted (verbatim forward for http)
+	params     *render.Map
+	headers    *render.Map
+	targets    []routeTarget
+	okStatus   int
+	skipState  int
+	logPayload bool
 }
 
 func buildRoute(name string, rt *config.Route, sinks map[string]sink.Sink, set *render.Set) (*Route, error) {
@@ -159,8 +160,12 @@ func buildRoute(name string, rt *config.Route, sinks map[string]sink.Sink, set *
 		name: name, gate: g, verifier: vf,
 		title: title, message: message, params: params, headers: headers,
 		targets: targets, okStatus: ok, skipState: skip,
+		logPayload: rt.LogPayload,
 	}, nil
 }
+
+// LogPayload reports whether the route asks for inbound-payload logging.
+func (r *Route) LogPayload() bool { return r.logPayload }
 
 // Verify runs the route's inbound signature check (a nil verifier accepts).
 func (r *Route) Verify(h http.Header, rawBody []byte) bool {

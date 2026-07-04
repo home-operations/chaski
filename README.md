@@ -91,6 +91,19 @@ stdin, here too):
 chaski send -c ./chaski.yaml --payload sample.json --route alertmanager
 ```
 
+Don't have a sample payload yet? chaski can capture one from the real sender.
+Set `logPayload: true` on a route to log each verified inbound body (before
+the `whenExpr` gate, so a gate miss still logs), or set
+`CHASKI_LOG_UNKNOWN_ROUTES=true` to log bodies POSTed to routes that don't
+exist yet — point the sender at its final URL, press its test button, and:
+
+```sh
+kubectl logs deploy/chaski | jq 'select(.route == "alertmanager") | .payload' > sample.json
+```
+
+Payload bodies can carry secrets — both switches are off by default; enable
+them deliberately and turn them off when done.
+
 ## Targets
 
 A route relays to one or more named targets; a target is exactly one of two
@@ -376,6 +389,7 @@ from the environment:
 | `CHASKI_LOG_LEVEL`              | `info`                | `debug` \| `info` \| `warn` \| `error`                   |
 | `CHASKI_LOG_FORMAT`             | `json`                | slog handler: `json` or `text`                           |
 | `CHASKI_DISABLE_REQUEST_LOGS`   | `false`               | Silence the per-request access log                       |
+| `CHASKI_LOG_UNKNOWN_ROUTES`     | `false`               | Log bodies POSTed to nonexistent routes (still a 404)    |
 | `CHASKI_SHUTDOWN_TIMEOUT`       | `15s`                 | Graceful drain bound on SIGINT/SIGTERM                   |
 | `CHASKI_SMTP_ENABLED`           | `false`               | Enable the SMTP ingestion listener                       |
 | `CHASKI_SMTP_PORT`              | `8025`                | SMTP listener port (when enabled)                        |
