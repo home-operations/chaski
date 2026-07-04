@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -321,5 +322,71 @@ func TestLoginServerExchange(t *testing.T) {
 	}
 	if gotUser != "alice" || gotPass != "secret" {
 		t.Errorf("auth got %q/%q, want alice/secret", gotUser, gotPass)
+	}
+}
+
+// TestServerLifecycle exercises New/ListenAndServe/Shutdown for real: the
+// listener greets, and Shutdown drains cleanly.
+func TestServerLifecycle(t *testing.T) {
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := l.Addr().(*net.TCPAddr).Port
+	_ = l.Close()
+
+	cfg := &config.Config{
+		SMTPPort:            port,
+		SMTPHostname:        "chaski-test",
+		SMTPMaxMessageBytes: 1 << 20,
+		SMTPMaxRecipients:   10,
+		RequestTimeout:      5 * time.Second,
+	}
+	srv := New(cfg, engineWithAlerts(t, &fakeNotifier{}), discardLog(), nil)
+	done := make(chan error, 1)
+	go func() { done <- srv.ListenAndServe() }()
+
+	var conn net.Conn
+	for range 100 {
+		conn, err = net.Dial("tcp", srv.inner.Addr)
+		if err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatalf("dial never succeeded: %v", err)
+	}
+	greeting := make([]byte, 3)
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, err := io.ReadFull(conn, greeting); err != nil || string(greeting) != "220" {
+		t.Errorf("greeting = %q (err %v), want 220", greeting, err)
+	}
+	_ = conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	srv.Shutdown(ctx)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("ListenAndServe returned %v, want nil after Shutdown", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("ListenAndServe did not return after Shutdown")
+	}
+
+	// Shutdown is nil-safe (the server may never have been built).
+	var nilSrv *Server
+	nilSrv.Shutdown(ctx)
+}
+
+func TestParsePlainUnparseableBlobBecomesText(t *testing.T) {
+	m := parsePlain([]byte("not an email at all"))
+	if m.text != "not an email at all" {
+		t.Errorf("text = %q, want the raw blob", m.text)
+	}
+	if m.subject != "" || m.from != "" {
+		t.Errorf("subject/from = %q/%q, want empty", m.subject, m.from)
 	}
 }

@@ -2,11 +2,15 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/home-operations/chaski/internal/config"
+	"github.com/home-operations/chaski/internal/relay"
 )
 
 func writeCfg(t *testing.T, body string) string {
@@ -172,5 +176,32 @@ func TestRootCommand(t *testing.T) {
 	root.SetArgs([]string{"bogus"})
 	if err := root.Execute(); err == nil {
 		t.Fatal("unknown argument: want an error, not the server starting")
+	}
+}
+
+func TestResolveConfigPath(t *testing.T) {
+	if got := resolveConfigPath("/flag/path.yaml"); got != "/flag/path.yaml" {
+		t.Errorf("flag should win, got %q", got)
+	}
+	t.Setenv("CHASKI_CONFIG", "/env/path.yaml")
+	if got := resolveConfigPath(""); got != "/env/path.yaml" {
+		t.Errorf("env should apply when the flag is empty, got %q", got)
+	}
+	t.Setenv("CHASKI_CONFIG", "")
+	if got := resolveConfigPath(""); got != config.DefaultConfigPath {
+		t.Errorf("default should apply last, got %q", got)
+	}
+}
+
+func TestPrintResultNonDryKinds(t *testing.T) {
+	var buf strings.Builder
+	if err := printResult(&buf, "r", relay.Result{Kind: relay.Skipped, Reason: "gate"}); err != nil {
+		t.Fatalf("printResult(skipped) = %v, want nil", err)
+	}
+	if !strings.Contains(buf.String(), "skipped") {
+		t.Errorf("output = %q, want the outcome named", buf.String())
+	}
+	if err := printResult(&buf, "r", relay.Result{Kind: relay.GateError, Err: errors.New("boom")}); err == nil {
+		t.Error("printResult(gate error) = nil, want error")
 	}
 }

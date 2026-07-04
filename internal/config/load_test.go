@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"go.yaml.in/yaml/v4"
 )
 
 // loadTarget loads a config whose route "r" uses the given `target:` YAML, with
@@ -394,5 +396,74 @@ func TestSymlinkEscapeRejected(t *testing.T) {
 	_, err := LoadRouteConfig(dir)
 	if err == nil || !strings.Contains(err.Error(), "outside") {
 		t.Fatalf("err = %v, want a symlink-escape error", err)
+	}
+}
+
+func TestVerifyKindAndSecrets(t *testing.T) {
+	gh := &Verify{GitHub: &GitHubVerify{Secret: StringList{"a"}}}
+	hm := &Verify{HMAC: &HMACVerify{Header: "X-Sig", Secret: StringList{"b"}}}
+	tk := &Verify{Token: &TokenVerify{Header: "X-Tok", Secret: StringList{"c"}}}
+	multi := &Verify{GitHub: gh.GitHub, Token: tk.Token}
+
+	cases := []struct {
+		v    *Verify
+		kind string
+		sec  string
+	}{
+		{gh, "github", "a"},
+		{hm, "hmac", "b"},
+		{tk, "token", "c"},
+	}
+	for _, c := range cases {
+		if got := c.v.VerifyKind(); got != c.kind {
+			t.Errorf("VerifyKind = %q, want %q", got, c.kind)
+		}
+		if s := c.v.Secrets(); len(s) != 1 || s[0] != c.sec {
+			t.Errorf("Secrets = %v, want [%s]", s, c.sec)
+		}
+	}
+	if got := multi.VerifyKind(); got != "" {
+		t.Errorf("VerifyKind = %q for a multi-variant block, want empty", got)
+	}
+	if s := (&Verify{}).Secrets(); s != nil {
+		t.Errorf("Secrets = %v for an empty block, want nil", s)
+	}
+}
+
+func TestTemplateSourceProvenance(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.yaml"), []byte("templates: { greet: 'hi' }"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc, err := LoadRouteConfig(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := rc.TemplateSource("greet"); got != "a.yaml" {
+		t.Errorf("TemplateSource(greet) = %q, want a.yaml", got)
+	}
+	if got := rc.TemplateSource("missing"); got != "" {
+		t.Errorf("TemplateSource(missing) = %q, want empty", got)
+	}
+}
+
+func TestStringListForms(t *testing.T) {
+	decode := func(t *testing.T, y string) (StringList, error) {
+		t.Helper()
+		var s struct {
+			V StringList `yaml:"v"`
+		}
+		err := yaml.Load([]byte(y), &s)
+		return s.V, err
+	}
+
+	if v, err := decode(t, "v: one"); err != nil || len(v) != 1 || v[0] != "one" {
+		t.Errorf("scalar = %v (%v), want [one]", v, err)
+	}
+	if v, err := decode(t, "v: [a, b]"); err != nil || len(v) != 2 || v[1] != "b" {
+		t.Errorf("list = %v (%v), want [a b]", v, err)
+	}
+	if _, err := decode(t, "v: {k: 1}"); err == nil {
+		t.Error("mapping should not decode into a StringList")
 	}
 }

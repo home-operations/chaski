@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -312,5 +314,120 @@ func TestRecovererTurnsPanicInto500(t *testing.T) {
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500", rec.Code)
+	}
+}
+
+// freePort reserves an ephemeral wildcard port and releases it for a listener.
+func freePort(t *testing.T) int {
+	t.Helper()
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatalf("reserve port: %v", err)
+	}
+	defer func() { _ = l.Close() }()
+	return l.Addr().(*net.TCPAddr).Port
+}
+
+// TestRunLifecycle exercises the full listener lifecycle: webhook, metrics, and
+// SMTP all come up, serve, and drain cleanly on context cancellation.
+func TestRunLifecycle(t *testing.T) {
+	cfg := &config.Config{
+		HTTPPort:            freePort(t),
+		MetricsEnabled:      true,
+		MetricsPort:         freePort(t),
+		SMTPEnabled:         true,
+		SMTPPort:            freePort(t),
+		SMTPHostname:        "chaski-test",
+		SMTPMaxMessageBytes: 1 << 20,
+		SMTPMaxRecipients:   10,
+		MaxBodyBytes:        1 << 20,
+		RequestTimeout:      5 * time.Second,
+		ShutdownTimeout:     5 * time.Second,
+		DisableRequestLogs:  true,
+	}
+	srv := New(cfg, emptyEngine(t), slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- srv.Run(ctx) }()
+
+	get := func(port int, path string) *http.Response {
+		t.Helper()
+		var resp *http.Response
+		var err error
+		for range 100 {
+			resp, err = http.Get(fmt.Sprintf("http://127.0.0.1:%d%s", port, path))
+			if err == nil {
+				return resp
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		t.Fatalf("GET :%d%s never succeeded: %v", port, path, err)
+		return nil
+	}
+
+	for _, path := range []string{"/healthz", "/readyz"} {
+		resp := get(cfg.HTTPPort, path)
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("%s status = %d, want 200", path, resp.StatusCode)
+		}
+	}
+	resp := get(cfg.MetricsPort, "/metrics")
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("/metrics status = %d, want 200", resp.StatusCode)
+	}
+
+	// The SMTP listener greets with a 220.
+	var conn net.Conn
+	var err error
+	for range 100 {
+		conn, err = net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", cfg.SMTPPort))
+		if err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatalf("SMTP dial never succeeded: %v", err)
+	}
+	greeting := make([]byte, 3)
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, err := io.ReadFull(conn, greeting); err != nil || string(greeting) != "220" {
+		t.Errorf("SMTP greeting = %q (err %v), want 220", greeting, err)
+	}
+	_ = conn.Close()
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("Run returned %v, want nil after graceful shutdown", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("Run did not return after cancellation")
+	}
+}
+
+func TestRunReportsBindFailure(t *testing.T) {
+	// Occupy the wildcard port so the webhook listener fails to bind and Run
+	// surfaces the error.
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer func() { _ = l.Close() }()
+
+	cfg := &config.Config{
+		HTTPPort:           l.Addr().(*net.TCPAddr).Port,
+		MaxBodyBytes:       1 << 20,
+		RequestTimeout:     time.Second,
+		ShutdownTimeout:    time.Second,
+		DisableRequestLogs: true,
+	}
+	srv := New(cfg, emptyEngine(t), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err := srv.Run(context.Background()); err == nil {
+		t.Error("Run = nil, want bind error for an occupied port")
 	}
 }

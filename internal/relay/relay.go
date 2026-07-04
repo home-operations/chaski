@@ -98,7 +98,7 @@ type Route struct {
 	headers    *render.Map
 	targets    []routeTarget
 	okStatus   int
-	skipState  int
+	skipStatus int
 	logPayload bool
 }
 
@@ -159,7 +159,7 @@ func buildRoute(name string, rt *config.Route, sinks map[string]sink.Sink, set *
 	return &Route{
 		name: name, gate: g, verifier: vf,
 		title: title, message: message, params: params, headers: headers,
-		targets: targets, okStatus: ok, skipState: skip,
+		targets: targets, okStatus: ok, skipStatus: skip,
 		logPayload: rt.LogPayload,
 	}, nil
 }
@@ -244,7 +244,7 @@ func (r *Route) Handle(ctx context.Context, in Input) Result {
 		if in.DryRun {
 			return Result{Status: http.StatusOK, Kind: DryRunned, Plan: &Plan{Route: r.name, Fired: false}}
 		}
-		return Result{Status: r.skipState, Kind: Skipped, Reason: "gate"}
+		return Result{Status: r.skipStatus, Kind: Skipped, Reason: "gate"}
 	}
 
 	// Per-target gates pick the fan-out subset against the same variables as the
@@ -268,7 +268,7 @@ func (r *Route) Handle(ctx context.Context, in Input) Result {
 		return Result{Status: http.StatusBadGateway, Kind: RelayError, Err: err, Dropped: rr.dropped}
 	}
 	if sent == 0 {
-		return Result{Status: r.skipState, Kind: Skipped, Reason: "no_targets", Dropped: rr.dropped}
+		return Result{Status: r.skipStatus, Kind: Skipped, Reason: "no_targets", Dropped: rr.dropped}
 	}
 	return Result{Status: r.okStatus, Kind: Relayed, Dropped: rr.dropped}
 }
