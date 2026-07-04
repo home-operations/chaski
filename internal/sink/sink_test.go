@@ -195,3 +195,14 @@ func TestNewBuildsSinks(t *testing.T) {
 		t.Fatalf("http sink: %v kind=%q", err, h.Kind())
 	}
 }
+
+func TestSinkIdentity(t *testing.T) {
+	a := &appriseSink{name: "po"}
+	if a.Name() != "po" || a.Kind() != "apprise" {
+		t.Errorf("apprise identity = %s/%s", a.Name(), a.Kind())
+	}
+	h := &httpSink{name: "hook"}
+	if h.Name() != "hook" || h.Kind() != "http" {
+		t.Errorf("http identity = %s/%s", h.Name(), h.Kind())
+	}
+}

@@ -145,7 +145,13 @@ func (vf *Verifier) Verify(headers http.Header, body []byte) bool {
 		}
 		return false
 	case modeHMAC:
-		provided, err := decodeMAC(vf.encoding, strings.TrimPrefix(got, vf.prefix))
+		// A configured prefix is part of the signature contract (GitHub's
+		// "sha256=..."): a header without it is malformed, not close enough.
+		sig, ok := strings.CutPrefix(got, vf.prefix)
+		if !ok {
+			return false
+		}
+		provided, err := decodeMAC(vf.encoding, sig)
 		if err != nil {
 			return false
 		}

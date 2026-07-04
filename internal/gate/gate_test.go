@@ -136,3 +136,14 @@ func TestNonBooleanResultIsRuntimeError(t *testing.T) {
 		t.Fatal("expected a runtime error for a non-boolean result")
 	}
 }
+
+func TestSource(t *testing.T) {
+	const expr = `payload.x == 1`
+	g, err := Compile(expr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g.Source() != expr {
+		t.Errorf("Source = %q, want the original expression", g.Source())
+	}
+}

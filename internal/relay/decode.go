@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -19,7 +20,7 @@ func DecodeBody(contentType string, raw []byte) (any, string, error) {
 	}
 	switch strings.TrimSpace(media) {
 	case "", "application/json":
-		if len(strings.TrimSpace(string(raw))) == 0 {
+		if len(bytes.TrimSpace(raw)) == 0 {
 			return map[string]any{}, contentType, nil
 		}
 		var p any

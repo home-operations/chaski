@@ -2,6 +2,7 @@ package sink
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -27,8 +28,9 @@ func (appriseNotifier) Send(ctx context.Context, targetURL, body, title string, 
 	}
 	a := apprise.New()
 	if err := a.Add(full); err != nil {
-		// A bad URL/scheme won't fix itself on retry.
-		return Permanent(fmt.Errorf("apprise: invalid target url: %w", err))
+		// A bad URL/scheme won't fix itself on retry. Like Send below, the error
+		// text may echo the credential-bearing URL — redact before it reaches logs.
+		return Permanent(fmt.Errorf("apprise: invalid target url: %s", redactURLs(err.Error(), full, targetURL)))
 	}
 	var opts []apprise.Option
 	if title != "" {
@@ -68,6 +70,12 @@ func mergeQuery(rawURL string, params map[string]string) (string, error) {
 	}
 	u, err := url.Parse(rawURL)
 	if err != nil {
+		// url.Parse returns a *url.Error that embeds the raw (credential-bearing)
+		// URL; unwrap to the bare cause so the URL never reaches logs.
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = ue.Err
+		}
 		return "", Permanent(fmt.Errorf("apprise: parse target url: %w", err))
 	}
 	q := u.Query()

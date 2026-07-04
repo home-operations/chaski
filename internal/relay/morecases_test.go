@@ -77,3 +77,31 @@ func TestDryRunPlanOmitsTargetCredentials(t *testing.T) {
 		t.Errorf("dry-run plan leaked target credentials: %s", s)
 	}
 }
+
+func TestKindString(t *testing.T) {
+	want := map[relay.Kind]string{
+		relay.Relayed: "relayed", relay.Skipped: "skipped", relay.DryRunned: "dryrun",
+		relay.GateError: "gate_error", relay.RenderError: "render_error", relay.RelayError: "relay_error",
+		relay.Kind(99): "unknown",
+	}
+	for k, s := range want {
+		if got := k.String(); got != s {
+			t.Errorf("Kind(%d).String() = %q, want %q", k, got, s)
+		}
+	}
+}
+
+func TestEngineAccessors(t *testing.T) {
+	e := engine(t, apprise1, &fakeNotifier{})
+	if e.RouteCount() != 1 {
+		t.Errorf("RouteCount = %d, want 1", e.RouteCount())
+	}
+	r := route(t, e)
+	if r.LogPayload() {
+		t.Error("LogPayload = true for a route without logPayload")
+	}
+	// A route with no verify block accepts any body.
+	if !r.Verify(nil, []byte("anything")) {
+		t.Error("Verify = false for a route without a verify block")
+	}
+}

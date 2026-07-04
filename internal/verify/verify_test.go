@@ -123,3 +123,17 @@ func TestCompileErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestHMACPrefixRequired(t *testing.T) {
+	body := `{"a":1}`
+	vf := mustCompile(t, &config.Verify{GitHub: &config.GitHubVerify{Secret: config.StringList{"s3cr3t"}}})
+
+	// A valid signature without the configured prefix is malformed, not close
+	// enough — the prefix is part of the contract.
+	if vf.Verify(hdr("X-Hub-Signature-256", hmacHex("s3cr3t", body)), []byte(body)) {
+		t.Error("signature without the sha256= prefix must fail")
+	}
+	if !vf.Verify(hdr("X-Hub-Signature-256", "sha256="+hmacHex("s3cr3t", body)), []byte(body)) {
+		t.Error("prefixed signature should verify")
+	}
+}

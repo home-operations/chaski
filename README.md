@@ -323,7 +323,7 @@ routes:
         header: X-Signature
         algo: sha256 # sha256 (default) | sha512
         encoding: hex # hex (default) | base64
-        prefix: "sha256=" # stripped before decoding
+        prefix: "sha256=" # required on the header value, stripped before decoding
         secret: '{{ env "HMAC_SECRET" }}'
 ```
 
