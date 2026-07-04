@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.5](https://github.com/home-operations/chaski/compare/0.2.4...0.2.5) (2026-07-04)
+
+
+### Features
+
+* **cli:** cobra CLI — chaski send, version, completions ([#47](https://github.com/home-operations/chaski/issues/47)) ([6bd846a](https://github.com/home-operations/chaski/commit/6bd846ae6c69799bcc6714888a3e01170bcff1d2))
+* per-route logPayload + CHASKI_LOG_UNKNOWN_ROUTES payload capture ([#49](https://github.com/home-operations/chaski/issues/49)) ([8d5bdd1](https://github.com/home-operations/chaski/commit/8d5bdd139b98821b603ba3b8e7ecc79b6ad99350))
+
 ## [0.2.4](https://github.com/home-operations/chaski/compare/0.2.3...0.2.4) (2026-07-04)
 
 
