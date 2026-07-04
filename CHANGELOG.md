@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/home-operations/chaski/compare/0.3.0...0.3.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* review findings — apprise URL leaks, strict HMAC prefix, coverage to 85% ([#53](https://github.com/home-operations/chaski/issues/53)) ([4fc3d2b](https://github.com/home-operations/chaski/commit/4fc3d2bfda57f4ca758523503e16c94f07667e71))
+
 ## [0.3.0](https://github.com/home-operations/chaski/compare/0.2.5...0.3.0) (2026-07-04)
 
 
