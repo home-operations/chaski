@@ -29,7 +29,7 @@ routes:
     message: 'alert: {{ .payload.status }}'
 `)
 	var buf bytes.Buffer
-	if err := runValidate(&buf, []string{"-c", file}); err != nil {
+	if err := runValidate(&buf, file, "", ""); err != nil {
 		t.Fatalf("runValidate: %v", err)
 	}
 	out := buf.String()
@@ -60,8 +60,7 @@ routes:
 
 func TestValidatePayloadRendersPlan(t *testing.T) {
 	var buf bytes.Buffer
-	args := []string{"-c", writeCfg(t, oneRoute), "--payload", writePayload(t, `{"status":"firing"}`)}
-	if err := runValidate(&buf, args); err != nil {
+	if err := runValidate(&buf, writeCfg(t, oneRoute), writePayload(t, `{"status":"firing"}`), ""); err != nil {
 		t.Fatalf("runValidate: %v", err)
 	}
 	out := buf.String()
@@ -72,8 +71,7 @@ func TestValidatePayloadRendersPlan(t *testing.T) {
 
 func TestValidatePayloadGateFalse(t *testing.T) {
 	var buf bytes.Buffer
-	args := []string{"-c", writeCfg(t, oneRoute), "--payload", writePayload(t, `{"status":"resolved"}`)}
-	if err := runValidate(&buf, args); err != nil {
+	if err := runValidate(&buf, writeCfg(t, oneRoute), writePayload(t, `{"status":"resolved"}`), ""); err != nil {
 		t.Fatalf("runValidate: %v", err)
 	}
 	if !strings.Contains(buf.String(), `"fired": false`) {
@@ -87,8 +85,7 @@ targets: { po: { apprise: { url: 'pover://u@t/' } } }
 routes:
   r: { target: po, message: '{{ .payload.x.Bad }}' }
 `)
-	args := []string{"-c", cfg, "--payload", writePayload(t, `{"x":"scalar"}`)}
-	if err := runValidate(io.Discard, args); err == nil {
+	if err := runValidate(io.Discard, cfg, writePayload(t, `{"x":"scalar"}`), ""); err == nil {
 		t.Fatal("want a render error for a bad field path against the sample payload")
 	}
 }
@@ -101,11 +98,11 @@ routes:
   b: { target: po, message: 'B {{ .payload.v }}' }
 `)
 	pl := writePayload(t, `{"v":"1"}`)
-	if err := runValidate(io.Discard, []string{"-c", cfg, "--payload", pl}); err == nil {
+	if err := runValidate(io.Discard, cfg, pl, ""); err == nil {
 		t.Error("multiple routes with no --route: want an error")
 	}
 	var buf bytes.Buffer
-	if err := runValidate(&buf, []string{"-c", cfg, "--payload", pl, "--route", "b"}); err != nil {
+	if err := runValidate(&buf, cfg, pl, "b"); err != nil {
 		t.Fatalf("--route b: %v", err)
 	}
 	if !strings.Contains(buf.String(), "B 1") {
@@ -133,9 +130,47 @@ routes: { r: { target: po, message: 'x' } }
 	}
 	for name, body := range tests {
 		t.Run(name, func(t *testing.T) {
-			if err := runValidate(io.Discard, []string{"-c", writeCfg(t, body)}); err == nil {
+			if err := runValidate(io.Discard, writeCfg(t, body), "", ""); err == nil {
 				t.Fatalf("runValidate(%s) = nil error, want error", name)
 			}
 		})
+	}
+}
+
+// TestRootCommand exercises the cobra wiring: subcommand dispatch, flag
+// parsing, --version, and unknown-argument rejection (which previously
+// started the server).
+func TestRootCommand(t *testing.T) {
+	file := writeCfg(t, oneRoute)
+
+	var buf bytes.Buffer
+	root := newRootCmd()
+	root.SetOut(&buf)
+	root.SetErr(&buf)
+	root.SetArgs([]string{"validate", "-c", file})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("validate via root: %v", err)
+	}
+	if !strings.Contains(buf.String(), "ok:") {
+		t.Errorf("validate output missing summary:\n%s", buf.String())
+	}
+
+	buf.Reset()
+	root = newRootCmd()
+	root.SetOut(&buf)
+	root.SetArgs([]string{"--version"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("--version: %v", err)
+	}
+	if !strings.Contains(buf.String(), "dev (commit none)") {
+		t.Errorf("--version output = %q", buf.String())
+	}
+
+	root = newRootCmd()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"bogus"})
+	if err := root.Execute(); err == nil {
+		t.Fatal("unknown argument: want an error, not the server starting")
 	}
 }

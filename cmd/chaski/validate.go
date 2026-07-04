@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"maps"
@@ -13,33 +12,33 @@ import (
 
 	"github.com/home-operations/chaski/internal/config"
 	"github.com/home-operations/chaski/internal/relay"
+	"github.com/spf13/cobra"
 )
 
-// runValidate implements `chaski validate [-c path] [--payload file] [--route
-// name]`: it loads the config (file or config.d directory), env-renders it, and
-// compiles every route exactly as the server does at boot — so a CI run fails
-// before deploy on any bad gate, template, verify block, target reference, or
-// missing env var. With --payload it goes further, rendering a route against a
-// sample body like ?dryRun=1 (catching semantic bugs — a wrong field path, a
-// typo'd key — that compilation can't). Otherwise it prints a source-attributed
-// summary. It is the only inspection path on the no-shell image.
-func runValidate(stdout io.Writer, args []string) error {
-	fs := flag.NewFlagSet("validate", flag.ContinueOnError)
-	fs.SetOutput(stdout)
-	path := fs.String("c", "", "config file or directory (default $CHASKI_CONFIG or "+config.DefaultConfigPath+")")
-	payload := fs.String("payload", "", "render a route against a sample JSON body (file, or - for stdin)")
-	routeName := fs.String("route", "", "route to render with --payload (default: the only one)")
-	if err := fs.Parse(args); err != nil {
-		return err
+func newValidateCmd() *cobra.Command {
+	var path, payload, route string
+	cmd := &cobra.Command{
+		Use:   "validate",
+		Short: "Check a config — and render a route against a sample payload — without sending",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runValidate(cmd.OutOrStdout(), path, payload, route)
+		},
 	}
+	addCommonFlags(cmd.Flags(), &path, &payload, &route)
+	return cmd
+}
 
-	p := *path
-	if p == "" {
-		if p = os.Getenv("CHASKI_CONFIG"); p == "" {
-			p = config.DefaultConfigPath
-		}
-	}
-
+// runValidate loads the config (file or config.d directory), env-renders it,
+// and compiles every route exactly as the server does at boot — so a CI run
+// fails before deploy on any bad gate, template, verify block, target
+// reference, or missing env var. With a payload it goes further, rendering a
+// route against a sample body like ?dryRun=1 (catching semantic bugs — a wrong
+// field path, a typo'd key — that compilation can't). Otherwise it prints a
+// source-attributed summary. It is the only inspection path on the no-shell
+// image.
+func runValidate(stdout io.Writer, path, payload, routeName string) error {
+	p := resolveConfigPath(path)
 	rc, err := config.LoadRouteConfig(p)
 	if err != nil {
 		return err
@@ -53,8 +52,8 @@ func runValidate(stdout io.Writer, args []string) error {
 		return err
 	}
 
-	if *payload != "" {
-		return renderSample(stdout, engine, rc, *routeName, *payload)
+	if payload != "" {
+		return renderSample(stdout, engine, rc, routeName, payload)
 	}
 
 	printSummary(stdout, p, rc)
@@ -89,6 +88,18 @@ func renderSample(stdout io.Writer, engine *relay.Engine, rc *config.RouteConfig
 		DryRun:      true,
 	})
 	return printResult(stdout, name, res)
+}
+
+// resolveConfigPath applies the -c default chain: flag, $CHASKI_CONFIG, the
+// compiled default.
+func resolveConfigPath(flagVal string) string {
+	if flagVal != "" {
+		return flagVal
+	}
+	if p := os.Getenv("CHASKI_CONFIG"); p != "" {
+		return p
+	}
+	return config.DefaultConfigPath
 }
 
 func readPayload(path string) ([]byte, error) {

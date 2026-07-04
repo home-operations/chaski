@@ -68,6 +68,12 @@ homebrew_casks:
       - chaski
     binaries:
       - chaski
+    generate_completions_from_executable:
+      shell_parameter_format: cobra
+      shells:
+        - bash
+        - zsh
+        - fish
     # Versioned casks: @major.minor is overwritten per patch, @major.minor.patch
     # accumulates one tap file per release.
     alternative_names:

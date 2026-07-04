@@ -83,6 +83,14 @@ the rendered fields (and catch a wrong field path or typo'd key before deploy):
 chaski validate -c ./chaski.yaml --payload sample.json --route alertmanager
 ```
 
+Or fire the route for real — the same pipeline with the delivery performed —
+to see exactly what lands in the notification client (`--payload -` reads
+stdin, here too):
+
+```sh
+chaski send -c ./chaski.yaml --payload sample.json --route alertmanager
+```
+
 ## Targets
 
 A route relays to one or more named targets; a target is exactly one of two
