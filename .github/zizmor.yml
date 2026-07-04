@@ -1,8 +1,8 @@
-# The Helm E2E build (e2e.yaml) runs docker/build-push-action with `load: true`:
-# the image is loaded into the kind cluster for the test and never pushed to a
-# registry or released. There is therefore no published artifact for a poisoned
-# tool/layer cache to compromise, so cache-poisoning does not apply to that job.
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/zizmorcore/zizmor/main/docs/schemas/zizmor.schema.json
 rules:
+  # Go cache on the goreleaser split legs: tag runs only restore caches saved
+  # from main, and PRs can't write those (PR cache saves are scoped to the PR).
   cache-poisoning:
     ignore:
-      - e2e.yaml
+      - release.yaml

@@ -1,0 +1,98 @@
+---
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
+version: 2
+project_name: chaski
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: chaski
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    main: ./cmd/chaski
+    binary: chaski
+
+archives:
+  - id: chaski
+    ids:
+      - chaski
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+upx:
+  - enabled: true
+    compress: best
+    lzma: true
+
+checksum:
+  algorithm: sha256
+  split: true
+
+sboms:
+  - artifacts: archive
+    documents:
+      - "{{ .ArtifactName }}.sbom.json"
+
+signs:
+  - cmd: cosign
+    signature: ${artifact}.sigstore.json
+    args:
+      - sign-blob
+      - --bundle=${signature}
+      - --yes
+      - ${artifact}
+    artifacts: all
+    output: true
+
+homebrew_casks:
+  - name: chaski
+    ids:
+      - chaski
+    binaries:
+      - chaski
+    # Versioned casks: @major.minor is overwritten per patch, @major.minor.patch
+    # accumulates one tap file per release.
+    alternative_names:
+      - "chaski@{{ .Major }}.{{ .Minor }}"
+      - "chaski@{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
+    repository:
+      owner: home-operations
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/home-operations/chaski
+    description: Small, stateless webhook-to-notification relay
+    # Binaries aren't notarized — strip the quarantine bit so macOS doesn't
+    # block the first run with "developer cannot be verified".
+    hooks:
+      post:
+        install: |
+          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/chaski"] if OS.mac?
+
+# Parallel per-GOOS release jobs (release.yaml): `release --split` legs +
+# one `continue --merge` job for checksums/signing/SBOMs/publish.
+partial:
+  by: goos
+
+# release-please creates the GitHub Release with the changelog; goreleaser
+# attaches binaries/sboms/sigs to it.
+release:
+  mode: keep-existing

@@ -52,9 +52,10 @@ routes:
     message: "{{ .payload.commonAnnotations.summary }}"
 ```
 
-Run chaski and send it a webhook. Inbound token auth is off by default — fine
-for cluster-internal senders; set `CHASKI_WEBHOOK_TOKEN` to require a bearer
-token (see [Configuration](#configuration)):
+Run chaski and send it a webhook (`brew install home-operations/tap/chaski`,
+or grab a binary from the releases). Inbound token auth is off by default —
+fine for cluster-internal senders; set `CHASKI_WEBHOOK_TOKEN` to require a
+bearer token (see [Configuration](#configuration)):
 
 ```sh
 CHASKI_CONFIG=./chaski.yaml chaski
