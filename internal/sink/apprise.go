@@ -34,6 +34,12 @@ func (appriseNotifier) Send(ctx context.Context, targetURL, body, title string, 
 	if title != "" {
 		opts = append(opts, apprise.WithTitle(title))
 	}
+	// A route that sets format declares its body IS that format. Without this,
+	// apprise-go's default input format (text) HTML-escapes the body when
+	// converting for an html/markdown target, so tags render literally.
+	if f := params["format"]; f != "" {
+		opts = append(opts, apprise.WithInputFormat(f))
+	}
 	if err := a.Send(body, opts...); err != nil {
 		// apprise-go embeds the full, credential-bearing target URL in its error
 		// text. Strip the known URL strings so it can't reach logs. Best-effort:
