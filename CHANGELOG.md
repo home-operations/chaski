@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0](https://github.com/home-operations/chaski/compare/0.2.5...0.3.0) (2026-07-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* serve health on the main port; metrics port becomes fully optional ([#52](https://github.com/home-operations/chaski/issues/52))
+
+### Features
+
+* serve health on the main port; metrics port becomes fully optional ([#52](https://github.com/home-operations/chaski/issues/52)) ([0f9a5f5](https://github.com/home-operations/chaski/commit/0f9a5f5a4db5da958623aa41231726809b5fb39e))
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/spf13/pflag (v1.0.9 → v1.0.10) ([#50](https://github.com/home-operations/chaski/issues/50)) ([3ab785d](https://github.com/home-operations/chaski/commit/3ab785da671612be6377fe6fdc04c3769a63dcfd))
+
 ## [0.2.5](https://github.com/home-operations/chaski/compare/0.2.4...0.2.5) (2026-07-04)
 
 
