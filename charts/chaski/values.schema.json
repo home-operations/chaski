@@ -80,13 +80,13 @@
         },
         "metricsEnabled": {
           "default": true,
-          "description": "Expose Prometheus metrics + the /healthz probe on `metricsPort` (CHASKI_METRICS_ENABLED).",
+          "description": "Expose Prometheus metrics at /metrics on metricsPort (CHASKI_METRICS_ENABLED). Disabling removes the metrics listener, container port, Service port, and ServiceMonitor entirely; health probes are unaffected (they target the http port).",
           "title": "metricsEnabled",
           "type": "boolean"
         },
         "metricsPort": {
           "default": 8081,
-          "description": "Metrics + health port (CHASKI_METRICS_PORT); kept off the public webhook port.",
+          "description": "Metrics listen port (CHASKI_METRICS_PORT), kept off the public webhook port.",
           "title": "metricsPort",
           "type": "integer"
         },
@@ -261,7 +261,7 @@
       "type": "array"
     },
     "livenessProbe": {
-      "description": "Liveness probe.",
+      "description": "Liveness probe. Targets /healthz on the main http port.",
       "properties": {
         "httpGet": {
           "properties": {
@@ -271,7 +271,7 @@
               "type": "string"
             },
             "port": {
-              "default": "metrics",
+              "default": "http",
               "title": "port",
               "type": "string"
             }
@@ -452,17 +452,17 @@
       "type": "string"
     },
     "readinessProbe": {
-      "description": "Readiness probe.",
+      "description": "Readiness probe. Targets /readyz on the main http port.",
       "properties": {
         "httpGet": {
           "properties": {
             "path": {
-              "default": "/healthz",
+              "default": "/readyz",
               "title": "path",
               "type": "string"
             },
             "port": {
-              "default": "metrics",
+              "default": "http",
               "title": "port",
               "type": "string"
             }
@@ -598,7 +598,7 @@
       "type": "object"
     },
     "startupProbe": {
-      "description": "Startup probe (GET /healthz on the metrics port).",
+      "description": "Startup probe (GET /healthz on the main http port, so it works regardless of the metrics toggle).",
       "properties": {
         "failureThreshold": {
           "default": 30,
@@ -613,7 +613,7 @@
               "type": "string"
             },
             "port": {
-              "default": "metrics",
+              "default": "http",
               "title": "port",
               "type": "string"
             }

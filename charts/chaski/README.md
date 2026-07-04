@@ -78,8 +78,8 @@ Kubernetes: `>=1.25.0-0`
 | config.logLevel | string | `"info"` | Log level (CHASKI_LOG_LEVEL): debug, info, warn, or error. |
 | config.logUnknownRoutes | bool | `false` | Log bodies POSTed to nonexistent routes, still answering 404 (CHASKI_LOG_UNKNOWN_ROUTES) — payload discovery before a route exists. Pre-verify bodies; enable deliberately, turn off when done. |
 | config.maxBodyBytes | int | `1048576` | Inbound body cap in bytes (CHASKI_MAX_BODY_BYTES). |
-| config.metricsEnabled | bool | `true` | Expose Prometheus metrics + the /healthz probe on `metricsPort` (CHASKI_METRICS_ENABLED). |
-| config.metricsPort | int | `8081` | Metrics + health port (CHASKI_METRICS_PORT); kept off the public webhook port. |
+| config.metricsEnabled | bool | `true` | Expose Prometheus metrics at /metrics on metricsPort (CHASKI_METRICS_ENABLED). Disabling removes the metrics listener, container port, Service port, and ServiceMonitor entirely; health probes are unaffected (they target the http port). |
+| config.metricsPort | int | `8081` | Metrics listen port (CHASKI_METRICS_PORT), kept off the public webhook port. |
 | config.mountPath | string | `"/config"` | Where the config ConfigMap is mounted. |
 | config.port | int | `8080` | Webhook receiver port (CHASKI_PORT); also the container/Service http port. |
 | config.requestTimeout | string | `"15s"` | Whole-request deadline (CHASKI_REQUEST_TIMEOUT): decode + gate + render + send + retry. |
@@ -104,7 +104,7 @@ Kubernetes: `>=1.25.0-0`
 | image.tag | string | `""` | Overrides the image tag; defaults to the chart appVersion. |
 | imagePullSecrets | list | `[]` | Image pull secrets for private registries. |
 | initContainers | list | `[]` | Additional init containers (templated). A `chaski validate` init container against the mounted config is a good CI/rollout gate. |
-| livenessProbe | object | `{"httpGet":{"path":"/healthz","port":"metrics"},"periodSeconds":20}` | Liveness probe. |
+| livenessProbe | object | `{"httpGet":{"path":"/healthz","port":"http"},"periodSeconds":20}` | Liveness probe. Targets /healthz on the main http port. |
 | monitoring.serviceMonitor.annotations | object | `{}` | ServiceMonitor annotations. |
 | monitoring.serviceMonitor.enabled | bool | `false` | Create a Prometheus Operator ServiceMonitor (requires its CRDs and `config.metricsEnabled`). |
 | monitoring.serviceMonitor.interval | string | `"30s"` | Scrape interval. |
@@ -122,7 +122,7 @@ Kubernetes: `>=1.25.0-0`
 | podLabels | object | `{}` | Labels added to the pod. |
 | podSecurityContext | object | `{"fsGroup":65532,"runAsGroup":65532,"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod-level securityContext. chaski runs as the image's nonroot user (uid 65532); no host or elevated access is needed. |
 | priorityClassName | string | `""` | PriorityClass for the pod (templated); empty uses the cluster default. |
-| readinessProbe | object | `{"httpGet":{"path":"/healthz","port":"metrics"},"periodSeconds":10}` | Readiness probe. |
+| readinessProbe | object | `{"httpGet":{"path":"/readyz","port":"http"},"periodSeconds":10}` | Readiness probe. Targets /readyz on the main http port. |
 | replicaCount | int | `1` | Number of replicas. chaski is stateless, so >1 is just more capacity/HA. |
 | resources | object | `{}` | Container resource requests/limits. |
 | securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true}` | Container securityContext. Drops all capabilities, read-only root filesystem, no privilege escalation. |
@@ -134,7 +134,7 @@ Kubernetes: `>=1.25.0-0`
 | serviceAccount.automount | bool | `false` | Mount the API token. chaski never calls the Kubernetes API, so this is off by default. |
 | serviceAccount.create | bool | `true` | Create a ServiceAccount. |
 | serviceAccount.name | string | `""` | ServiceAccount name; empty uses the chart fullname. |
-| startupProbe | object | `{"failureThreshold":30,"httpGet":{"path":"/healthz","port":"metrics"},"periodSeconds":2}` | Startup probe (GET /healthz on the metrics port). |
+| startupProbe | object | `{"failureThreshold":30,"httpGet":{"path":"/healthz","port":"http"},"periodSeconds":2}` | Startup probe (GET /healthz on the main http port, so it works regardless of the metrics toggle). |
 | strategy | object | `{"rollingUpdate":{"maxSurge":1,"maxUnavailable":0},"type":"RollingUpdate"}` | Deployment update strategy. RollingUpdate by default; chaski is stateless so a surge-then-drain rollout is safe. |
 | terminationGracePeriodSeconds | int | `30` | Grace period for a clean shutdown (drain). |
 | tests.image.pullPolicy | string | `"IfNotPresent"` | `helm test` image pull policy. |

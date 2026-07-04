@@ -21,6 +21,12 @@ func (s *Server) handler() http.Handler {
 	// Registered method-agnostic (not "POST /hooks/{route}") so a non-POST gets
 	// an explicit 405 rather than being swallowed by the "/" catch-all's 404.
 	mux.HandleFunc("/hooks/{route}", s.handleHook)
+	// The org pair standard: /healthz = liveness (cheap, no dependencies),
+	// /readyz = readiness, both on the main port so the optional metrics
+	// listener can be disabled without touching the probes. chaski has no
+	// serving condition beyond being up, so readyz aliases healthz.
+	mux.HandleFunc("GET /healthz", handleHealth)
+	mux.HandleFunc("GET /readyz", handleHealth)
 	mux.HandleFunc("/", handleNotFound)
 
 	var h http.Handler = mux

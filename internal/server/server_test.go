@@ -133,26 +133,32 @@ func TestRequestLogLevels(t *testing.T) {
 	}
 }
 
-func TestHealthzServedEvenWhenMetricsDisabled(t *testing.T) {
+// Health lives on the main webhook listener (the chart's probes target the
+// http port), NOT the optional metrics listener — so disabling metrics can
+// never break the probes. /readyz aliases /healthz (the pair standard).
+func TestHealthOnMainPortNotMetricsPort(t *testing.T) {
+	srv := newServer(emptyEngine(t), "")
+	for _, path := range []string{"/healthz", "/readyz"} {
+		rec := httptest.NewRecorder()
+		srv.handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"status":"ok"`) {
+			t.Fatalf("main handler %s: %d %q", path, rec.Code, rec.Body.String())
+		}
+	}
+
+	// The metrics handler is metrics-only.
 	rec := httptest.NewRecorder()
-	// metrics off: /healthz must still work, so probes keep the pod Ready.
-	metricsHandler(false).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"status":"ok"`) {
-		t.Fatalf("healthz: %d %q", rec.Code, rec.Body.String())
+	metricsHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("metrics handler /healthz status = %d, want 404 (metrics-only listener)", rec.Code)
 	}
 }
 
 func TestMetricsEndpoint(t *testing.T) {
 	rec := httptest.NewRecorder()
-	metricsHandler(true).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	metricsHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("metrics status = %d", rec.Code)
-	}
-	// metrics off: /metrics is not registered (404).
-	rec = httptest.NewRecorder()
-	metricsHandler(false).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("metrics disabled: status = %d, want 404", rec.Code)
 	}
 }
 

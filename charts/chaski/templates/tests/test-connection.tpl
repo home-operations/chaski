@@ -23,7 +23,7 @@ spec:
         - -c
         - |
           set -eu
-          url="http://{{ include "chaski.fullname" . }}:{{ .Values.config.metricsPort }}/healthz"
+          url="http://{{ include "chaski.fullname" . }}:{{ .Values.service.port }}/readyz"
           echo "GET ${url}"
           body="$(curl -fsS "${url}")"
           echo "${body}"

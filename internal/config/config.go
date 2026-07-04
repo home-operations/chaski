@@ -23,10 +23,13 @@ type Config struct {
 	// HTTPPort is the public webhook receiver (POST /hooks/{route}).
 	HTTPPort int `env:"CHASKI_PORT" envDefault:"8080"`
 
-	// MetricsEnabled exposes Prometheus metrics at /metrics and the /healthz
-	// probe on MetricsPort, keeping monitoring off the public webhook port.
+	// MetricsEnabled exposes Prometheus metrics at /metrics on MetricsPort.
+	// Disabling it removes the metrics listener entirely; the /healthz and
+	// /readyz probe endpoints live on the main webhook port and are unaffected.
 	MetricsEnabled bool `env:"CHASKI_METRICS_ENABLED" envDefault:"true"`
-	MetricsPort    int  `env:"CHASKI_METRICS_PORT" envDefault:"8081"`
+	// MetricsPort is bound as ":<port>" (unspecified address), so it serves
+	// IPv4-only, IPv6-only, and dual-stack clusters alike.
+	MetricsPort int `env:"CHASKI_METRICS_PORT" envDefault:"8081"`
 
 	// ConfigPath is the routes + targets source: a single YAML file or a
 	// directory of *.yaml/*.yml fragments merged additively (config.d).
