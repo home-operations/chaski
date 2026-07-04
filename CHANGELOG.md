@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.3](https://github.com/home-operations/chaski/compare/0.2.2...0.2.3) (2026-07-04)
+
+
+### Bug Fixes
+
+* **sink:** pass params format as the apprise input format ([#43](https://github.com/home-operations/chaski/issues/43)) ([0eedc5f](https://github.com/home-operations/chaski/commit/0eedc5f1a591e7729c2c94f79415914be0293319))
+
+
+### Documentation
+
+* pushover format applies to the message only, never the title ([#42](https://github.com/home-operations/chaski/issues/42)) ([843c273](https://github.com/home-operations/chaski/commit/843c27398959dcc6fe1e0acc5353b7b75f22226c))
+
 ## [0.2.2](https://github.com/home-operations/chaski/compare/0.2.1...0.2.2) (2026-07-04)
 
 
