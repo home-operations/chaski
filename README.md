@@ -113,7 +113,8 @@ URL scheme picks the provider and carries its credentials. A route's `params`
 are URL-encoded onto the target URL's query, so the keys you set are whatever
 the chosen provider recognizes — Pushover, for example, reads `priority`,
 `sound`, `url`, `url_title`, and `format` (`html` | `markdown`; renders the
-message instead of showing it as plain text).
+message instead of showing it as plain text — Pushover titles never render
+HTML, so keep tags out of `title`).
 
 ```yaml
 targets:
