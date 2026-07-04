@@ -20,6 +20,7 @@ import (
 	"github.com/home-operations/chaski/internal/config"
 	"github.com/home-operations/chaski/internal/relay"
 	"github.com/home-operations/chaski/internal/server"
+	"github.com/spf13/cobra"
 )
 
 // Build metadata, stamped via -ldflags at release time.
@@ -29,20 +30,36 @@ var (
 )
 
 func main() {
-	// `chaski validate [-c path]` checks config and exits, without starting the
-	// server — the CI gate (same checks the server runs at boot).
-	if len(os.Args) > 1 && os.Args[1] == "validate" {
-		if err := runValidate(os.Stdout, os.Args[2:]); err != nil {
-			fmt.Fprintln(os.Stderr, "chaski validate:", err)
-			os.Exit(1)
-		}
-		return
-	}
-
-	if err := run(); err != nil {
-		slog.Error("fatal error", "error", err)
+	if err := newRootCmd().Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "chaski:", err)
 		os.Exit(1)
 	}
+}
+
+// newRootCmd wires the CLI: bare `chaski` runs the server (the container
+// entrypoint), subcommands are the local tooling.
+func newRootCmd() *cobra.Command {
+	root := &cobra.Command{
+		Use:   "chaski",
+		Short: "A small, stateless webhook relay",
+		Long: "chaski gates JSON webhooks with a CEL expression, renders fields with Go templates, and\n" +
+			"relays to an apprise notification or HTTP target. With no subcommand it runs the server.",
+		Version:       fmt.Sprintf("%s (commit %s)", version, commit),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args:          cobra.NoArgs,
+		RunE: func(*cobra.Command, []string) error {
+			// Server faults log structured (the container-log contract), not via
+			// cobra's plain-text error path.
+			if err := run(); err != nil {
+				slog.Error("fatal error", "error", err)
+				os.Exit(1)
+			}
+			return nil
+		},
+	}
+	root.AddCommand(newValidateCmd(), newSendCmd())
+	return root
 }
 
 func run() error {
