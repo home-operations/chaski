@@ -37,9 +37,9 @@ replicaCount: 1
 config:
   # -- Webhook receiver port (CHASKI_PORT); also the container/Service http port.
   port: 8080
-  # -- Expose Prometheus metrics + the /healthz probe on `metricsPort` (CHASKI_METRICS_ENABLED).
+  # -- Expose Prometheus metrics at /metrics on metricsPort (CHASKI_METRICS_ENABLED). Disabling removes the metrics listener, container port, Service port, and ServiceMonitor entirely; health probes are unaffected (they target the http port).
   metricsEnabled: true
-  # -- Metrics + health port (CHASKI_METRICS_PORT); kept off the public webhook port.
+  # -- Metrics listen port (CHASKI_METRICS_PORT), kept off the public webhook port.
   metricsPort: 8081
   # -- Log level (CHASKI_LOG_LEVEL): debug, info, warn, or error.
   logLevel: info
@@ -146,24 +146,24 @@ securityContext:
     drop:
       - ALL
 
-# -- Startup probe (GET /healthz on the metrics port).
+# -- Startup probe (GET /healthz on the main http port, so it works regardless of the metrics toggle).
 startupProbe:
   httpGet:
     path: /healthz
-    port: metrics
+    port: http
   failureThreshold: 30
   periodSeconds: 2
-# -- Liveness probe.
+# -- Liveness probe. Targets /healthz on the main http port.
 livenessProbe:
   httpGet:
     path: /healthz
-    port: metrics
+    port: http
   periodSeconds: 20
-# -- Readiness probe.
+# -- Readiness probe. Targets /readyz on the main http port.
 readinessProbe:
   httpGet:
-    path: /healthz
-    port: metrics
+    path: /readyz
+    port: http
   periodSeconds: 10
 
 # -- Container resource requests/limits.

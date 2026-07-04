@@ -384,8 +384,8 @@ from the environment:
 | `CHASKI_REQUEST_TIMEOUT`        | `15s`                 | Whole-request deadline (overridden per target `timeout`) |
 | `CHASKI_RETRY_ATTEMPTS`         | `3`                   | Default per-target retry attempts (target `retry` wins)  |
 | `CHASKI_RETRY_BACKOFF`          | `200ms`               | Default retry backoff (overridden per target `retry`)    |
-| `CHASKI_METRICS_ENABLED`        | `true`                | Serve `/metrics` + `/healthz` on the metrics port        |
-| `CHASKI_METRICS_PORT`           | `8081`                | Metrics + health listener                                |
+| `CHASKI_METRICS_ENABLED`        | `true`                | Serve Prometheus `/metrics`; off ⇒ no metrics listener   |
+| `CHASKI_METRICS_PORT`           | `8081`                | Metrics listen port (`/metrics` only)                    |
 | `CHASKI_LOG_LEVEL`              | `info`                | `debug` \| `info` \| `warn` \| `error`                   |
 | `CHASKI_LOG_FORMAT`             | `json`                | slog handler: `json` or `text`                           |
 | `CHASKI_DISABLE_REQUEST_LOGS`   | `false`               | Silence the per-request access log                       |
@@ -400,10 +400,11 @@ from the environment:
 
 A JSON Schema for the route config is published at
 [`config.schema.json`](config.schema.json) — point your editor's YAML language
-server at it for completion and validation. The metrics port serves
-`GET /metrics` (Prometheus) and `GET /healthz`; requests to these
-monitoring endpoints are logged at `debug`, so scrapes and probes don't fill the
-`info` access log (set `CHASKI_LOG_LEVEL=debug` to see them).
+server at it for completion and validation. `GET /healthz` (liveness) and
+`GET /readyz` (readiness) are served on the main webhook port, and Prometheus
+`GET /metrics` on its own optional port; requests to these monitoring endpoints
+are logged at `debug`, so scrapes and probes don't fill the `info` access log
+(set `CHASKI_LOG_LEVEL=debug` to see them).
 
 Key metrics:
 

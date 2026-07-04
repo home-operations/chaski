@@ -121,11 +121,11 @@ spec:
             - name: http
               containerPort: {{ .Values.config.port }}
               protocol: TCP
-            # Always exposed: this port serves /healthz (the probes) even when
-            # metrics are disabled; /metrics is served here only when metricsEnabled.
+            {{- if .Values.config.metricsEnabled }}
             - name: metrics
               containerPort: {{ .Values.config.metricsPort }}
               protocol: TCP
+            {{- end }}
             {{- if .Values.config.smtpEnabled }}
             - name: smtp
               containerPort: {{ .Values.config.smtpPort }}

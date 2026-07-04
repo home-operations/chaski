@@ -110,3 +110,33 @@ tests:
             name: smtp
             containerPort: 8025
             protocol: TCP
+
+  # Pins the port standard: probes target /healthz and /readyz on the http
+  # port, and disabling metrics removes the metrics containerPort without
+  # touching them — the pod stays Ready.
+  - it: targets health probes at the http port and survives metrics-off
+    template: deployment.tpl
+    set:
+      config.metricsEnabled: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: metrics
+            containerPort: 8081
+            protocol: TCP
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: http
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: http
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /readyz
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.port
+          value: http
