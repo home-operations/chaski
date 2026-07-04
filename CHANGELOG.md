@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.2.2](https://github.com/home-operations/chaski/compare/0.2.1...0.2.2) (2026-07-04)
+
+
+### Features
+
+* **deps:** update module github.com/google/cel-go (v0.28.1 → v0.29.1) ([#35](https://github.com/home-operations/chaski/issues/35)) ([224a78b](https://github.com/home-operations/chaski/commit/224a78b61624fbed86c13c3b6b5577d63968649e))
+* **gate:** enable CEL network + base64 extensions ([#36](https://github.com/home-operations/chaski/issues/36)) ([481c9a2](https://github.com/home-operations/chaski/commit/481c9a25bedceaafae32e2057fbea9e4d6d65880))
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/unraid/apprise-go (v0.2.6 → v0.2.7) ([#40](https://github.com/home-operations/chaski/issues/40)) ([194e69b](https://github.com/home-operations/chaski/commit/194e69bd1b03d34f009a3524d77a536553885e78))
+* **relay:** correctness — sibling cancellation, apprise timeout, nil-config panic, timeout plumbing ([#37](https://github.com/home-operations/chaski/issues/37)) ([54041d9](https://github.com/home-operations/chaski/commit/54041d99e480fa3e6937a9260bcef7cae655ec77))
+* **server,sink:** stop leaking secrets via dry-run, error bodies, and logs ([#39](https://github.com/home-operations/chaski/issues/39)) ([4c1a381](https://github.com/home-operations/chaski/commit/4c1a38157f49a4b9f6661fb23abc1deb3b4c2d40))
+* **server:** always serve /healthz on the monitoring port; record panicked requests ([#38](https://github.com/home-operations/chaski/issues/38)) ([f11b351](https://github.com/home-operations/chaski/commit/f11b3516d11e0bfd6814155ec12022e03869fe73))
+
+
+### Documentation
+
+* pushover format param (html/markdown) via apprise-go v0.2.7 ([#41](https://github.com/home-operations/chaski/issues/41)) ([a6349cf](https://github.com/home-operations/chaski/commit/a6349cf79c41ff60d674859ad105779e9c7b31a0))
+
+
+### Miscellaneous Chores
+
+* **mise:** Update tool oxfmt (0.56.0 → 0.57.0) ([#34](https://github.com/home-operations/chaski/issues/34)) ([d2f623b](https://github.com/home-operations/chaski/commit/d2f623bbe347a9b08ade28b7589d6d5591cecf53))
+* **renovate:** inherit shared toolchain + chart-docs presets ([#31](https://github.com/home-operations/chaski/issues/31)) ([753f6db](https://github.com/home-operations/chaski/commit/753f6dbafcbc19f8b23d121fed0ab3adb8315798))
+
 ## [0.2.1](https://github.com/home-operations/chaski/compare/0.2.0...0.2.1) (2026-06-24)
 
 
