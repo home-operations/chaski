@@ -442,6 +442,10 @@ mise run lint           # golangci-lint
 mise run helm-unittest  # chart template tests
 ```
 
+## Releases
+
+Release artifacts (archives, the Homebrew cask, SBOMs, and Cosign signatures) are built and published with [GoReleaser Pro](https://goreleaser.com/pro/). If it's useful to your own projects, consider [sponsoring its author](https://github.com/sponsors/caarlos0).
+
 ## License
 
 [AGPL-3.0](LICENSE).
