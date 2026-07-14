@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.3.2](https://github.com/home-operations/chaski/compare/0.3.1...0.3.2) (2026-07-14)
+
+
+### Features
+
+* **deps:** update module golang.org/x/sync (v0.21.0 → v0.22.0) ([#61](https://github.com/home-operations/chaski/issues/61)) ([f9a1d55](https://github.com/home-operations/chaski/commit/f9a1d5506cec5f70c695f887c4ef2ed1e247b936))
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/google/cel-go (v0.29.1 → v0.29.2) ([#59](https://github.com/home-operations/chaski/issues/59)) ([a3dd9cc](https://github.com/home-operations/chaski/commit/a3dd9cc1e7cd19a1a467e657daaa2507e7c5404d))
+* **deps:** update module github.com/unraid/apprise-go (v0.2.7 → v0.2.8) ([#55](https://github.com/home-operations/chaski/issues/55)) ([a933cee](https://github.com/home-operations/chaski/commit/a933cee25521817936f41adf80660b0a27bda631))
+
+
+### Documentation
+
+* credit GoReleaser Pro in the README ([#57](https://github.com/home-operations/chaski/issues/57)) ([9301ec6](https://github.com/home-operations/chaski/commit/9301ec64ac4eaee8bfa01da13d2e248fd0a88d59))
+
+
+### Miscellaneous Chores
+
+* **mise:** Update tool go (1.26.4 → 1.26.5) ([#62](https://github.com/home-operations/chaski/issues/62)) ([a6a1e1f](https://github.com/home-operations/chaski/commit/a6a1e1f4b886ff4ff30927027b1dfd6c58244d50))
+* **mise:** Update tool helm (4.2.2 → 4.2.3) ([#63](https://github.com/home-operations/chaski/issues/63)) ([3e1dc06](https://github.com/home-operations/chaski/commit/3e1dc06bf189f80221cd4edbb1b0a8c06fee21af))
+* **mise:** Update tool lefthook (2.1.9 → 2.1.10) ([#60](https://github.com/home-operations/chaski/issues/60)) ([40b2f5a](https://github.com/home-operations/chaski/commit/40b2f5ad1fb3ccc6a0dbbd6f517ca1b72b67e727))
+* **mise:** Update tool oxfmt (0.57.0 → 0.58.0) ([#58](https://github.com/home-operations/chaski/issues/58)) ([c3639d1](https://github.com/home-operations/chaski/commit/c3639d1a4019cee8fcec98efbf2d73ae3b86cfd0))
+* **mise:** Update tool oxfmt (0.58.0 → 0.59.0) ([#64](https://github.com/home-operations/chaski/issues/64)) ([a8248e7](https://github.com/home-operations/chaski/commit/a8248e777b2f5dc56f6318b1d79f429f222019e9))
+* **mise:** Update tool zizmor (1.26.1 → 1.27.0) ([#65](https://github.com/home-operations/chaski/issues/65)) ([6f3fa8f](https://github.com/home-operations/chaski/commit/6f3fa8f3a7037533697dc4a9f7f5f116bfb8ceec))
+
 ## [0.3.1](https://github.com/home-operations/chaski/compare/0.3.0...0.3.1) (2026-07-04)
 
 
