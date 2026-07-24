@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.3.3](https://github.com/home-operations/chaski/compare/0.3.2...0.3.3) (2026-07-24)
+
+
+### Features
+
+* **deps:** update module github.com/prometheus/client_golang (v1.23.2 → v1.24.0) ([#69](https://github.com/home-operations/chaski/issues/69)) ([57ebe6e](https://github.com/home-operations/chaski/commit/57ebe6ed70bd404b5ea5968676bddc9e9b51247a))
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/prometheus/client_golang (v1.24.0 → v1.24.1) ([#73](https://github.com/home-operations/chaski/issues/73)) ([f29da81](https://github.com/home-operations/chaski/commit/f29da81cf06342d3fdd35ce4c594299aab3ac375))
+* **helm:** stamp Chart.yaml version on release ([#76](https://github.com/home-operations/chaski/issues/76)) ([f84c19f](https://github.com/home-operations/chaski/commit/f84c19f0d63352cae81f045133d3c81eadc827dd))
+
+
+### Styles
+
+* indent markdown at 2 to match embedded yaml ([#70](https://github.com/home-operations/chaski/issues/70)) ([97cb433](https://github.com/home-operations/chaski/commit/97cb4330f5c0561ddfee38d630a6bb7d45ce0ce8))
+
+
+### Miscellaneous Chores
+
+* **github-release:** Update release helm-unittest/helm-unittest (v1.1.1 → v1.1.2) ([#75](https://github.com/home-operations/chaski/issues/75)) ([2868d43](https://github.com/home-operations/chaski/commit/2868d4342fbede889ff7019a8f3802d3afa3565f))
+* **mise:** Update tool cosign (3.1.1 → 3.1.2) ([#67](https://github.com/home-operations/chaski/issues/67)) ([1a7d6e8](https://github.com/home-operations/chaski/commit/1a7d6e8a5c59c42f86c75e3d6f76d6b0a06dca84))
+* **mise:** Update tool oxfmt (0.59.0 → 0.60.0) ([#72](https://github.com/home-operations/chaski/issues/72)) ([05ad8d6](https://github.com/home-operations/chaski/commit/05ad8d6d60d4bb3d91ed6d1490ac37dfe4aa0434))
+* **mise:** Update tool zizmor (1.27.0 → 1.28.0) ([#71](https://github.com/home-operations/chaski/issues/71)) ([f84f71f](https://github.com/home-operations/chaski/commit/f84f71fa754178ab5759fd77c9872e178b178a5c))
+
 ## [0.3.2](https://github.com/home-operations/chaski/compare/0.3.1...0.3.2) (2026-07-14)
 
 
