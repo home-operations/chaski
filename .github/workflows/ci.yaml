@@ -88,6 +88,16 @@ jobs:
       - name: Run unit tests
         run: mise run test
 
+  goreleaser:
+    name: GoReleaser
+    uses: ./.github/workflows/goreleaser.yaml
+    permissions:
+      contents: read
+    with:
+      snapshot: true
+    secrets:
+      GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
   helm-e2e:
     if: >-
       ${{ github.event_name != 'push'
@@ -210,6 +220,7 @@ jobs:
     needs:
       - go-lint
       - go-test
+      - goreleaser
       - helm-e2e
       - helm-lint
       - helm-unittest
