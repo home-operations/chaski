@@ -7,8 +7,8 @@ kubeVersion: ">=1.25.0-0"
 # release-please stamps both from the release tag (the release workflow also
 # passes --version/--app-version at package time); stamping the committed copy
 # keeps it from going stale.
-version: 0.3.2 # x-release-please-version
-appVersion: "0.3.2" # x-release-please-version
+version: 0.3.3 # x-release-please-version
+appVersion: "0.3.3" # x-release-please-version
 home: https://github.com/home-operations/chaski
 sources:
   - https://github.com/home-operations/chaski
