@@ -1,5 +1,66 @@
 # Changelog
 
+## [0.4.0](https://github.com/home-operations/chaski/compare/0.3.3...0.4.0) (2026-08-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go:** Update module github.com/google/cel-go (v0.30.0 → v0.31.0) ([#105](https://github.com/home-operations/chaski/issues/105))
+* **go:** Update module github.com/unraid/apprise-go (v0.2.8 → v0.3.0) ([#104](https://github.com/home-operations/chaski/issues/104))
+
+### Features
+
+* **go:** update module github.com/google/cel-go (v0.29.2 → v0.30.0) ([#79](https://github.com/home-operations/chaski/issues/79)) ([cc231b1](https://github.com/home-operations/chaski/commit/cc231b1439d5191e401e9216565a61d3c879366a))
+* **go:** Update module github.com/google/cel-go (v0.30.0 → v0.31.0) ([#105](https://github.com/home-operations/chaski/issues/105)) ([5157d9d](https://github.com/home-operations/chaski/commit/5157d9d8c47e57580014f5a365ffd7aacdfc4d87))
+* **go:** Update module github.com/unraid/apprise-go (v0.2.8 → v0.3.0) ([#104](https://github.com/home-operations/chaski/issues/104)) ([842f9f3](https://github.com/home-operations/chaski/commit/842f9f384465b35f81996b867c78904a4f13a815))
+
+
+### Bug Fixes
+
+* **ci:** fail the merge gate on cancelled jobs, and key the lint cache on the toolchain ([#89](https://github.com/home-operations/chaski/issues/89)) ([52fe071](https://github.com/home-operations/chaski/commit/52fe0719f77ec8f3d5280000ad4642bdadf17626))
+* **go:** update module go (1.26.4 → 1.26.5) ([#101](https://github.com/home-operations/chaski/issues/101)) ([da3e713](https://github.com/home-operations/chaski/commit/da3e713096527610f4b21c37a8414bd237d67d9b))
+* **release:** strip cask quarantine bit in preflight ([#107](https://github.com/home-operations/chaski/issues/107)) ([5c04446](https://github.com/home-operations/chaski/commit/5c044466d77bac243e8ecbfd9831d9ade7027486))
+
+
+### Documentation
+
+* add AGENTS.md with Go conventions ([#93](https://github.com/home-operations/chaski/issues/93)) ([fd03879](https://github.com/home-operations/chaski/commit/fd0387943b531a043372de1dd1afc190d46c4539))
+* make AGENTS.md a generic, drift-resistant template ([#95](https://github.com/home-operations/chaski/issues/95)) ([df2abb6](https://github.com/home-operations/chaski/commit/df2abb664cef4b7e272357b592c871d8001f3129))
+
+
+### Build System
+
+* **mise:** add actionlint and refresh the lockfile ([#80](https://github.com/home-operations/chaski/issues/80)) ([b4ef618](https://github.com/home-operations/chaski/commit/b4ef61852e9e711b27a64e1bfa144ee5c8ddb90b))
+
+
+### Continuous Integration
+
+* gate pull requests on a single Build Success check ([#78](https://github.com/home-operations/chaski/issues/78)) ([fcdeb66](https://github.com/home-operations/chaski/commit/fcdeb665fc79920b4c174a70dc92996172e315ef))
+* **github-action:** Update action actions/stale (v10.4.0 → v11.0.0) ([#90](https://github.com/home-operations/chaski/issues/90)) ([c98db57](https://github.com/home-operations/chaski/commit/c98db57022418b0c53f5df2f85dfbc0d65f8aaa8))
+* **github-action:** Update action docker/github-builder (v1.14.0 → v1.15.0) ([#88](https://github.com/home-operations/chaski/issues/88)) ([1fad7d8](https://github.com/home-operations/chaski/commit/1fad7d850c25184f789af0f4d6f579d7668562ca))
+* **github-action:** Update action docker/github-builder (v1.15.0 → v1.16.0) ([#106](https://github.com/home-operations/chaski/issues/106)) ([28c41c0](https://github.com/home-operations/chaski/commit/28c41c0a3cb3d6480c3cb4d2c8d63ce9c7767116))
+* **github-action:** Update action docker/login-action (v4.5.0 → v4.5.1) ([#84](https://github.com/home-operations/chaski/issues/84)) ([7c1b828](https://github.com/home-operations/chaski/commit/7c1b828eb152b124e04ce89d15fd5bb7d73807e6))
+* **github-action:** Update action docker/login-action (v4.5.1 → v4.5.2) ([#91](https://github.com/home-operations/chaski/issues/91)) ([f6dee03](https://github.com/home-operations/chaski/commit/f6dee03032a5844660cad347a28f9587fd529fdb))
+* **github-action:** Update action docker/login-action (v4.5.2 → v4.6.0) ([#94](https://github.com/home-operations/chaski/issues/94)) ([5e179f2](https://github.com/home-operations/chaski/commit/5e179f2e2f96d8c503a2bdb70a7335365439345d))
+* **github-action:** Update action home-operations/.github/actions/workflow-lint (v1.0.2 → v1.0.3) ([#100](https://github.com/home-operations/chaski/issues/100)) ([711a7cd](https://github.com/home-operations/chaski/commit/711a7cd72ae1f5a595843291fe8f334287a0a7e9))
+* **github-action:** Update action jdx/mise-action (v4.2.1 → v4.2.2) ([#82](https://github.com/home-operations/chaski/issues/82)) ([9606982](https://github.com/home-operations/chaski/commit/96069823c167c24fa0803596d971b2e74a049cdf))
+* **github-action:** Update action jdx/mise-action (v4.2.2 → v4.2.3) ([#86](https://github.com/home-operations/chaski/issues/86)) ([192672b](https://github.com/home-operations/chaski/commit/192672b80dc60022460e2d42b2dd5d95f6061fa3))
+* **github-action:** Update action jdx/mise-action (v4.2.3 → v4.2.4) ([#102](https://github.com/home-operations/chaski/issues/102)) ([ae1601d](https://github.com/home-operations/chaski/commit/ae1601df662009e27807ec1a5c62953e2f30add4))
+* lint workflows with the shared composite action ([#81](https://github.com/home-operations/chaski/issues/81)) ([3501a65](https://github.com/home-operations/chaski/commit/3501a6554ea1fd5879c2912d5f99f9be656df52d))
+* skip release-please version-bump PRs in checks ([#77](https://github.com/home-operations/chaski/issues/77)) ([7112ad9](https://github.com/home-operations/chaski/commit/7112ad9e15feff19754f92b473c74d1eee0e6b47))
+* update workflow-lint and use self-repository syntax ([#97](https://github.com/home-operations/chaski/issues/97)) ([4054f8c](https://github.com/home-operations/chaski/commit/4054f8c7f129daa347c5350f3105575a4434d474))
+* wire govulncheck into mise and CI ([#99](https://github.com/home-operations/chaski/issues/99)) ([adfe251](https://github.com/home-operations/chaski/commit/adfe251929ec65ab1b4d1dc91048e40f49388a1b))
+
+
+### Miscellaneous Chores
+
+* **mise:** prune lockfile to used platforms ([#98](https://github.com/home-operations/chaski/issues/98)) ([769fd79](https://github.com/home-operations/chaski/commit/769fd79e53a4848d9bfd8ca5973f5a9031d45abd))
+* **mise:** Update tool oxfmt (0.60.0 → 0.61.0) ([#85](https://github.com/home-operations/chaski/issues/85)) ([a36dda1](https://github.com/home-operations/chaski/commit/a36dda1ebdcfae59ca9bb8af7b9e7d072f4a0e61))
+* **mise:** Update tool oxfmt (0.61.0 → 0.62.0) ([#103](https://github.com/home-operations/chaski/issues/103)) ([9d412ea](https://github.com/home-operations/chaski/commit/9d412eae559aa041b0a5a97687a49214635d3950))
+* **mise:** Update tool zizmor (1.28.0 → 1.29.0) ([#96](https://github.com/home-operations/chaski/issues/96)) ([18b5b4b](https://github.com/home-operations/chaski/commit/18b5b4baebffec6aa7a060524edaca9b6c767b12))
+* **release-please:** standardize the release pull request title pattern ([#92](https://github.com/home-operations/chaski/issues/92)) ([498dca2](https://github.com/home-operations/chaski/commit/498dca258bd12569b1773818efdcd8ce78efb59a))
+* standardize release-please changelog sections ([#87](https://github.com/home-operations/chaski/issues/87)) ([f413ad0](https://github.com/home-operations/chaski/commit/f413ad02892ca0d9846c9b754c78cf5a5bfef8b5))
+
 ## [0.3.3](https://github.com/home-operations/chaski/compare/0.3.2...0.3.3) (2026-07-24)
 
 
