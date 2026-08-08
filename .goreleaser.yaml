@@ -87,9 +87,13 @@ homebrew_casks:
     homepage: https://github.com/home-operations/chaski
     description: Small, stateless webhook-to-notification relay
     # Binaries aren't notarized — strip the quarantine bit so macOS doesn't
-    # block the first run with "developer cannot be verified".
+    # block the first run with "developer cannot be verified". Must be
+    # preflight, not postflight: Homebrew orders cask artifacts by class
+    # (PreflightBlock < Binary < GeneratedCompletion < PostflightBlock), so a
+    # postflight hook runs *after* generate_completions_from_executable has
+    # already tried to execute the still-quarantined binary and been SIGKILLed.
     hooks:
-      post:
+      pre:
         install: |
           system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/chaski"] if OS.mac?
 
