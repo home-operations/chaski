@@ -2,9 +2,9 @@ package sink
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	apprise "github.com/unraid/apprise-go"
@@ -22,10 +22,7 @@ func (appriseNotifier) Send(ctx context.Context, targetURL, body, title string, 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	full, err := mergeQuery(targetURL, params)
-	if err != nil {
-		return err
-	}
+	full := mergeQuery(targetURL, params)
 	a := apprise.New()
 	if err := a.Add(full); err != nil {
 		// A bad URL/scheme won't fix itself on retry. Like Send below, the error
@@ -55,35 +52,34 @@ func (appriseNotifier) Send(ctx context.Context, targetURL, body, title string, 
 // strip credential-bearing target URLs that apprise-go echoes in its errors.
 func redactURLs(text string, urls ...string) string {
 	for _, u := range urls {
-		if u != "" {
-			text = strings.ReplaceAll(text, u, "<redacted-url>")
+		if u == "" {
+			continue
 		}
+		text = strings.ReplaceAll(text, u, "<redacted-url>")
+		// url.Error embeds the URL %q-quoted; when quoting escapes a character
+		// the literal replacement above can't match, so strip that form too.
+		text = strings.ReplaceAll(text, strconv.Quote(u), `"<redacted-url>"`)
 	}
 	return text
 }
 
-// mergeQuery URL-encodes params into rawURL's query (params override existing
-// keys). Provider auth/host live in rawURL and are never touched.
-func mergeQuery(rawURL string, params map[string]string) (string, error) {
+// mergeQuery URL-encodes params and appends them to rawURL's query. The URL is
+// never parsed: apprise schemes carry authorities net/url rejects (a tgram://
+// bot token's colon reads as an invalid port), and apprise-go's own parser
+// resolves a repeated key last-wins, so appended params override existing keys.
+func mergeQuery(rawURL string, params map[string]string) string {
 	if len(params) == 0 {
-		return rawURL, nil
+		return rawURL
 	}
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		// url.Parse returns a *url.Error that embeds the raw (credential-bearing)
-		// URL; unwrap to the bare cause so the URL never reaches logs.
-		var ue *url.Error
-		if errors.As(err, &ue) {
-			err = ue.Err
-		}
-		return "", Permanent(fmt.Errorf("apprise: parse target url: %w", err))
-	}
-	q := u.Query()
+	q := url.Values{}
 	for k, v := range params {
 		q.Set(k, v)
 	}
-	u.RawQuery = q.Encode()
-	return u.String(), nil
+	sep := "?"
+	if strings.Contains(rawURL, "?") {
+		sep = "&"
+	}
+	return rawURL + sep + q.Encode()
 }
 
 // appriseSink relays to an apprise target through the Notifier seam.
