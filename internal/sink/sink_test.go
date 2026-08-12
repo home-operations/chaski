@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	apprise "github.com/unraid/apprise-go"
+
 	"github.com/home-operations/chaski/internal/config"
 )
 
@@ -67,16 +69,29 @@ func TestAppriseSinkPermanentNotRetried(t *testing.T) {
 }
 
 func TestMergeQuery(t *testing.T) {
-	got, err := mergeQuery("pover://u@t/?sound=pushover", map[string]string{"priority": "2"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	got := mergeQuery("pover://u@t/?sound=pushover", map[string]string{"priority": "2"})
 	if !strings.Contains(got, "priority=2") || !strings.Contains(got, "sound=pushover") {
 		t.Errorf("merged url = %q, want both priority and sound", got)
 	}
+	// A tgram:// bot token carries a colon in the host, which net/url rejects
+	// as an invalid port; the URL must pass through untouched.
+	got = mergeQuery("tgram://123456789:AAEfake/104243855", map[string]string{"format": "html"})
+	if got != "tgram://123456789:AAEfake/104243855?format=html" {
+		t.Errorf("merged tgram url = %q", got)
+	}
 	// No params → unchanged.
-	if got, _ := mergeQuery("pover://u@t/", nil); got != "pover://u@t/" {
+	if got := mergeQuery("pover://u@t/", nil); got != "pover://u@t/" {
 		t.Errorf("empty params changed url: %q", got)
+	}
+}
+
+// TestMergeQueryTelegramAcceptedByApprise pins the seam with apprise-go: its
+// token validation requires the full id:hash token in the tgram:// host, so a
+// merged URL must keep that form intact for Add to accept it.
+func TestMergeQueryTelegramAcceptedByApprise(t *testing.T) {
+	full := mergeQuery("tgram://123456789:AAEfake/104243855", map[string]string{"format": "html"})
+	if err := apprise.New().Add(full); err != nil {
+		t.Fatalf("apprise rejected merged url: %v", err)
 	}
 }
 
