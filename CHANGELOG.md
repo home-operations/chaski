@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.1](https://github.com/home-operations/chaski/compare/0.4.0...0.4.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **go:** update module google.golang.org/protobuf (v1.36.11 → v1.36.12) ([#110](https://github.com/home-operations/chaski/issues/110)) ([e5e46f7](https://github.com/home-operations/chaski/commit/e5e46f7cc983bd6ce4abb571a413482423e93d45))
+* **sink:** append route params without parsing the target url ([#112](https://github.com/home-operations/chaski/issues/112)) ([3b78b3c](https://github.com/home-operations/chaski/commit/3b78b3cecb2059bedfb62edf2a63bf22fb7b9325))
+
+
+### Miscellaneous Chores
+
+* **mise:** Update tool cosign (3.1.2 → 3.1.3) ([#108](https://github.com/home-operations/chaski/issues/108)) ([b0b39b5](https://github.com/home-operations/chaski/commit/b0b39b594cdb0ad4ac5bbba75138bccac9f1b566))
+
 ## [0.4.0](https://github.com/home-operations/chaski/compare/0.3.3...0.4.0) (2026-08-08)
 
 
