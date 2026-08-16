@@ -1,6 +1,6 @@
 module github.com/home-operations/chaski
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
