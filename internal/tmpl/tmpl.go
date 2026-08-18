@@ -21,7 +21,7 @@ import (
 	"github.com/go-sprout/sprout/registry/numeric"
 	"github.com/go-sprout/sprout/registry/random"
 	"github.com/go-sprout/sprout/registry/reflect"
-	"github.com/go-sprout/sprout/registry/regexp"
+	"github.com/go-sprout/sprout/registry/regex"
 	"github.com/go-sprout/sprout/registry/semver"
 	"github.com/go-sprout/sprout/registry/slices"
 	"github.com/go-sprout/sprout/registry/std"
@@ -44,7 +44,7 @@ func safeHandler() *sprout.DefaultHandler {
 		numeric.NewRegistry(),
 		slices.NewRegistry(),
 		maps.NewRegistry(),
-		regexp.NewRegistry(),
+		regex.NewRegistry(),
 		time.NewRegistry(),
 		semver.NewRegistry(),
 		random.NewRegistry(),
