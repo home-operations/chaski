@@ -265,6 +265,12 @@ strings (`trunc`, `toTitleCase`, `replace`, `trimAll`), `dict`/`dig`/`pluck`,
 `toJSON`/`base64Encode`, `sha256Sum`, and time (`dateInZone`, `.now.UTC.Format`);
 filesystem and network helpers are excluded. See the
 [sprout registries](https://docs.atom.codes/sprout/registries) for the full set.
+The regex helpers are sprout's pipeline-friendly
+[`regex` registry](https://docs.atom.codes/sprout/registries/regex): the input
+string is always the last argument, so `regexFindAll`, `regexSplit`,
+`regexReplaceAll`, and `regexReplaceAllLiteral` differ from their sprig
+argument order; write them pipeline-style, e.g.
+`{{ .payload.ref | regexReplaceAll "^refs/heads/" "" }}`.
 
 ### Shared snippets
 
