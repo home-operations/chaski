@@ -3,13 +3,13 @@ module github.com/home-operations/chaski
 go 1.26.0
 
 require (
+	cel.dev/cel-go v0.32.0
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/emersion/go-message v0.18.2
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.25.0
 	github.com/go-sprout/sprout v1.1.0
-	github.com/google/cel-go v0.32.0
 	github.com/invopop/jsonschema v0.14.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/cobra v1.10.2
