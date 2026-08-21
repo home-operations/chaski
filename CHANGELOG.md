@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.5.0](https://github.com/home-operations/chaski/compare/0.4.1...0.5.0) (2026-08-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go:** Update module github.com/emersion/go-smtp (v0.24.0 → v0.25.0) ([#114](https://github.com/home-operations/chaski/issues/114))
+
+### Features
+
+* **go:** Update module github.com/emersion/go-smtp (v0.24.0 → v0.25.0) ([#114](https://github.com/home-operations/chaski/issues/114)) ([674c1ad](https://github.com/home-operations/chaski/commit/674c1adb64b648571d79790417e68803f0e5ce1d))
+* **go:** update module github.com/go-sprout/sprout (v1.0.3 → v1.1.0) ([#120](https://github.com/home-operations/chaski/issues/120)) ([bf282bb](https://github.com/home-operations/chaski/commit/bf282bb944b94329648333fddbeecfc972b5cbfd))
+* **go:** update module github.com/google/cel-go (v0.31.0 → v0.32.0) ([#127](https://github.com/home-operations/chaski/issues/127)) ([fe94c7a](https://github.com/home-operations/chaski/commit/fe94c7aa1b9bb6eee7b33bebc850d2a66589c0f1))
+
+
+### Bug Fixes
+
+* **chart:** keep the routes example out of the targets schema description ([#126](https://github.com/home-operations/chaski/issues/126)) ([910b384](https://github.com/home-operations/chaski/commit/910b384806c90b71226a3ba50f5e5885cb18c24c))
+* **go:** update module github.com/go-sprout/sprout (v1.1.0 → v1.1.1) ([#128](https://github.com/home-operations/chaski/issues/128)) ([3289a2d](https://github.com/home-operations/chaski/commit/3289a2d17851e5ef6419e7ab9e7465caca377065))
+* **go:** update module github.com/unraid/apprise-go (v0.3.0 → v0.3.1) ([#113](https://github.com/home-operations/chaski/issues/113)) ([801791f](https://github.com/home-operations/chaski/commit/801791fecb1db807d8d7e9431ad504c1a9792345))
+* **go:** update module github.com/unraid/apprise-go (v0.3.1 → v0.3.2) ([#119](https://github.com/home-operations/chaski/issues/119)) ([a5a498b](https://github.com/home-operations/chaski/commit/a5a498bc4b6e1b9309ff4ecb8707f4aaab76ca9b))
+* **go:** update to go 1.27.0 ([#129](https://github.com/home-operations/chaski/issues/129)) ([bcc3948](https://github.com/home-operations/chaski/commit/bcc39483dca5f39bf1c1eda743da1b2e98aa4110))
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action jdx/mise-action (v4.2.4 → v4.2.5) ([#121](https://github.com/home-operations/chaski/issues/121)) ([a738b88](https://github.com/home-operations/chaski/commit/a738b88bd47cc026de95092f5c852ddb96cc9af4))
+* **go:** pin go directive to 1.26.0 ([#122](https://github.com/home-operations/chaski/issues/122)) ([000f1fd](https://github.com/home-operations/chaski/commit/000f1fd324c023bf5927120d359525211827ebb5))
+* **mise:** update tool go (1.26.5 → 1.26.6) ([#125](https://github.com/home-operations/chaski/issues/125)) ([5471e54](https://github.com/home-operations/chaski/commit/5471e542ebac6ae4e3098862b9bfc58c3b398081))
+* **mise:** update tool go:golang.org/x/vuln/cmd/govulncheck (1.6.0 → v1.7.0) ([#118](https://github.com/home-operations/chaski/issues/118)) ([a82b986](https://github.com/home-operations/chaski/commit/a82b986280ec4d4cafdd218345fd9697b002c876))
+* **mise:** update tool helm (4.2.3 → 4.2.4) ([#124](https://github.com/home-operations/chaski/issues/124)) ([dc097ff](https://github.com/home-operations/chaski/commit/dc097ffc1540a2e57527a39553af6266fb3ae0da))
+* **mise:** Update tool oxfmt (0.62.0 → 0.63.0) ([#115](https://github.com/home-operations/chaski/issues/115)) ([6b34179](https://github.com/home-operations/chaski/commit/6b341794bff44b762d9d4f9634da6e8d59e78239))
+
 ## [0.4.1](https://github.com/home-operations/chaski/compare/0.4.0...0.4.1) (2026-08-12)
 
 
