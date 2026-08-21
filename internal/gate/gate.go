@@ -32,7 +32,7 @@ const interruptCheckFrequency = 1024
 
 // structpbValueType is the JSON-bridge type CEL values convert to cleanly
 // (string-keyed maps, JSON-native scalars) for toJSON.
-var structpbValueType = reflect.TypeOf(&structpb.Value{})
+var structpbValueType = reflect.TypeFor[*structpb.Value]()
 
 // Input is the variable environment a whenExpr is evaluated against.
 type Input struct {
