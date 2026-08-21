@@ -87,8 +87,7 @@ func (s *httpSink) do(ctx context.Context, msg Message) error {
 	if err != nil {
 		// *url.Error embeds the URL, and s.url may carry credentials in its query;
 		// unwrap to the transport cause and identify the target by name instead.
-		var ue *url.Error
-		if errors.As(err, &ue) {
+		if ue, ok := errors.AsType[*url.Error](err); ok {
 			err = ue.Err
 		}
 		return fmt.Errorf("http target %q: %w", s.name, err) // transport/timeout — retryable
