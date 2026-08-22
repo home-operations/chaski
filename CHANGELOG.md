@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.1](https://github.com/home-operations/chaski/compare/0.5.0...0.5.1) (2026-08-22)
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action docker/setup-buildx-action (v4.2.0 → v4.3.0) ([#132](https://github.com/home-operations/chaski/issues/132)) ([0935629](https://github.com/home-operations/chaski/commit/0935629caa86a6ceabe8a325dfa33da40e8271ff))
+* **mise:** update tool oxfmt (0.63.0 → 0.64.0) ([#130](https://github.com/home-operations/chaski/issues/130)) ([a152536](https://github.com/home-operations/chaski/commit/a152536691b5de1ee582a6720bdf4a62efb58353))
+* **mise:** update tool yq (4.53.3 → 4.53.4) ([#131](https://github.com/home-operations/chaski/issues/131)) ([17f6ecc](https://github.com/home-operations/chaski/commit/17f6ecce36693a70c52c63d46e02df3e628c5ded))
+
 ## [0.5.0](https://github.com/home-operations/chaski/compare/0.4.1...0.5.0) (2026-08-21)
 
 
