@@ -7,7 +7,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -136,9 +135,8 @@ func newLogger(cfg *config.Config) *slog.Logger {
 // when one is set, so the GC reclaims before the container is OOM-killed. It is
 // a silent no-op outside a memory-limited cgroup.
 func setMemLimit() {
-	_, _ = memlimit.SetGoMemLimitWithOpts(
+	_, _ = memlimit.Set(
 		memlimit.WithRatio(0.9),
 		memlimit.WithProvider(memlimit.FromCgroup),
-		memlimit.WithLogger(slog.New(slog.NewTextHandler(io.Discard, nil))),
 	)
 }
