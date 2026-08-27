@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.5.1](https://github.com/home-operations/chaski/compare/0.5.0...0.5.1) (2026-08-27)
+
+
+### Features
+
+* **go:** update module github.com/kimmachinegun/automemlimit (v0.7.5 → v1.0.0) ([#136](https://github.com/home-operations/chaski/issues/136)) ([58a6526](https://github.com/home-operations/chaski/commit/58a65263742742c333189100222394f5d56fa796))
+
+
+### Bug Fixes
+
+* drop UPX compression, packed binaries segfault (upx/upx[#18902](https://github.com/home-operations/chaski/issues/18902)) ([#138](https://github.com/home-operations/chaski/issues/138)) ([d609f95](https://github.com/home-operations/chaski/commit/d609f950b98f38d077204be9462dbd5900a341b5))
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action docker/github-builder (v1.16.0 → v1.17.0) ([#135](https://github.com/home-operations/chaski/issues/135)) ([7115628](https://github.com/home-operations/chaski/commit/71156286d655ebf1359f611739d8c004f1b54e9b))
+* **github-action:** update action docker/setup-buildx-action (v4.2.0 → v4.3.0) ([#132](https://github.com/home-operations/chaski/issues/132)) ([0935629](https://github.com/home-operations/chaski/commit/0935629caa86a6ceabe8a325dfa33da40e8271ff))
+* **mise:** update mise tools ([#134](https://github.com/home-operations/chaski/issues/134)) ([ff1d2f5](https://github.com/home-operations/chaski/commit/ff1d2f58472810867276797898709ac8626c909b))
+* **mise:** update tool oxfmt (0.63.0 → 0.64.0) ([#130](https://github.com/home-operations/chaski/issues/130)) ([a152536](https://github.com/home-operations/chaski/commit/a152536691b5de1ee582a6720bdf4a62efb58353))
+* **mise:** update tool yq (4.53.3 → 4.53.4) ([#131](https://github.com/home-operations/chaski/issues/131)) ([17f6ecc](https://github.com/home-operations/chaski/commit/17f6ecce36693a70c52c63d46e02df3e628c5ded))
+
 ## [0.5.0](https://github.com/home-operations/chaski/compare/0.4.1...0.5.0) (2026-08-21)
 
 
