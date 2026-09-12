@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.5.2](https://github.com/home-operations/chaski/compare/0.5.1...0.5.2) (2026-09-12)
+
+
+### Features
+
+* **container:** update image mirror.gcr.io/curlimages/curl (8.21.0 → 8.22.0) ([#148](https://github.com/home-operations/chaski/issues/148)) ([51b20a8](https://github.com/home-operations/chaski/commit/51b20a83ce38f1a42ef8e013c0a7119efc896aa1))
+* **go:** update module golang.org/x/sync (v0.22.0 → v0.23.0) ([#153](https://github.com/home-operations/chaski/issues/153)) ([08c5364](https://github.com/home-operations/chaski/commit/08c5364c4301da9b7f805ede88441a7ecbcf1537))
+
+
+### Bug Fixes
+
+* **go:** update module github.com/unraid/apprise-go (v0.3.2 → v0.3.3) ([#147](https://github.com/home-operations/chaski/issues/147)) ([5caa0ae](https://github.com/home-operations/chaski/commit/5caa0aea21d0e65b66468b6b1d29b2983dd8aefe))
+
+
+### Documentation
+
+* **agents:** derive Go version from go.mod ([b0806c8](https://github.com/home-operations/chaski/commit/b0806c8731e3a46cfae599fe1d1ac43ad2351797))
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action anchore/sbom-action (v0.24.0 → v0.24.1) ([#143](https://github.com/home-operations/chaski/issues/143)) ([e9efea6](https://github.com/home-operations/chaski/commit/e9efea667c915c8f88d2756a83069e494fe78c69))
+* **github-action:** update action anchore/sbom-action (v0.24.1 → v0.24.2) ([#146](https://github.com/home-operations/chaski/issues/146)) ([d7fee94](https://github.com/home-operations/chaski/commit/d7fee9476ceb4718293d63a0a90cc40f2895109d))
+* **github-action:** update action helm/kind-action (v1.14.0 → v1.15.0) ([#152](https://github.com/home-operations/chaski/issues/152)) ([4698025](https://github.com/home-operations/chaski/commit/4698025d0c96030ca3234d9a51f7cbb66a06711d))
+* **github-action:** update action jdx/mise-action (v4.2.5 → v4.3.0) ([#142](https://github.com/home-operations/chaski/issues/142)) ([9a25754](https://github.com/home-operations/chaski/commit/9a257549211048b3ed100f2a3bc1de747664db76))
+* **mise:** update tool aqua:dadav/helm-schema (0.23.4 → 0.23.5) ([#140](https://github.com/home-operations/chaski/issues/140)) ([a0b68b6](https://github.com/home-operations/chaski/commit/a0b68b6898c08705f0210db6cd7ecb7df5ee59c7))
+* **mise:** update tool go (1.27.0 → 1.27.1) ([#151](https://github.com/home-operations/chaski/issues/151)) ([4eadf62](https://github.com/home-operations/chaski/commit/4eadf6238555f3f9c53fca9082bda4dbe51267da))
+* **mise:** update tool go:golang.org/x/vuln/cmd/govulncheck (1.7.0 → v1.8.0) ([#154](https://github.com/home-operations/chaski/issues/154)) ([687ac33](https://github.com/home-operations/chaski/commit/687ac336029eed18342cea9a6fcc708dc18eba68))
+* **mise:** update tool golangci-lint (2.13.1 → 2.13.2) ([#144](https://github.com/home-operations/chaski/issues/144)) ([d607471](https://github.com/home-operations/chaski/commit/d607471a854d7513037741062de14ed068064b69))
+* **mise:** update tool lefthook (2.1.11 → 2.1.12) ([#145](https://github.com/home-operations/chaski/issues/145)) ([f39efe8](https://github.com/home-operations/chaski/commit/f39efe843b54650e65955f9682a80ecca6663116))
+* **mise:** update tool oxfmt (0.64.0 → 0.65.0) ([#141](https://github.com/home-operations/chaski/issues/141)) ([9bc65a0](https://github.com/home-operations/chaski/commit/9bc65a02e04e766d33691ff3fb4c91eb74cce0be))
+* **mise:** update tool oxfmt (0.65.0 → 0.66.0) ([#150](https://github.com/home-operations/chaski/issues/150)) ([51a71d5](https://github.com/home-operations/chaski/commit/51a71d5948dc4df5f92f5cc62f1c53493355d0fa))
+* **mise:** update tool oxfmt (0.66.0 → 0.67.0) ([#155](https://github.com/home-operations/chaski/issues/155)) ([a17ea38](https://github.com/home-operations/chaski/commit/a17ea38e798f3147d1a26bbfa8ce9343f2045701))
+* **mise:** update tool zizmor (1.29.0 → 1.30.0) ([#149](https://github.com/home-operations/chaski/issues/149)) ([e684050](https://github.com/home-operations/chaski/commit/e68405003c8d480c751e1cc58450c155d7e9a53c))
+* **mise:** update tool zizmor (1.30.0 → 1.30.1) ([#156](https://github.com/home-operations/chaski/issues/156)) ([9d1ba98](https://github.com/home-operations/chaski/commit/9d1ba98cfe6d72f152c1fe599a0e097aea883af1))
+
 ## [0.5.1](https://github.com/home-operations/chaski/compare/0.5.0...0.5.1) (2026-08-27)
 
 
