@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.3](https://github.com/home-operations/chaski/compare/0.5.2...0.5.3) (2026-10-21)
+
+
+### Features
+
+* **container:** update image mirror.gcr.io/curlimages/curl (8.22.0 → 8.23.0) ([#199](https://github.com/home-operations/chaski/issues/199)) ([bae9379](https://github.com/home-operations/chaski/commit/bae937957d57180c5e8a6dfa8cfdbc286690608a))
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action jdx/mise-action (v5.1.2 → v5.2.0) ([#197](https://github.com/home-operations/chaski/issues/197)) ([dd98051](https://github.com/home-operations/chaski/commit/dd980513b35acfc485fd135366191ce3ff69d3d9))
+* **mise:** update mise tools ([#195](https://github.com/home-operations/chaski/issues/195)) ([1435361](https://github.com/home-operations/chaski/commit/14353617616a6b47dfb5662b1825bbfb0a70766c))
+* **mise:** update tool go (1.27.2 → 1.27.3) ([#200](https://github.com/home-operations/chaski/issues/200)) ([24523a5](https://github.com/home-operations/chaski/commit/24523a5f963bfbc017066f8bec7522acf942a8bd))
+* **mise:** update tool golangci-lint (2.14.0 → 2.15.0) ([#198](https://github.com/home-operations/chaski/issues/198)) ([11424f6](https://github.com/home-operations/chaski/commit/11424f6d13d76a5c7f16da0b449f7588a5b6b23c))
+
 ## [0.5.2](https://github.com/home-operations/chaski/compare/0.5.1...0.5.2) (2026-10-18)
 
 
