@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.4](https://github.com/home-operations/chaski/compare/0.5.3...0.5.4) (2026-10-24)
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action jdx/mise-action (v5.2.1 → v5.2.2) ([#206](https://github.com/home-operations/chaski/issues/206)) ([9609541](https://github.com/home-operations/chaski/commit/96095411d6ac7eaa4548602e4456135041d9f89b))
+* **github-action:** update github-actions ([#203](https://github.com/home-operations/chaski/issues/203)) ([c05db24](https://github.com/home-operations/chaski/commit/c05db24c561d8a6f4fd7e2e1b55135d24470c6ee))
+* **mise:** update tool aqua:dadav/helm-schema (0.23.5 → 0.24.0) ([#201](https://github.com/home-operations/chaski/issues/201)) ([cc9de05](https://github.com/home-operations/chaski/commit/cc9de055223b6b5edb3da3bb7e82eaddf12b654e))
+* **mise:** update tool cosign (3.1.3 → 3.1.4) ([#205](https://github.com/home-operations/chaski/issues/205)) ([a62d232](https://github.com/home-operations/chaski/commit/a62d2324f0c2d6f2ffc9e4622a8adc1268ba335a))
+* **mise:** update tool oxfmt (0.73.0 → 0.74.0) ([#204](https://github.com/home-operations/chaski/issues/204)) ([578ead2](https://github.com/home-operations/chaski/commit/578ead2a98444c76f1568ac6a6a901ae2f3d5eb5))
+
 ## [0.5.3](https://github.com/home-operations/chaski/compare/0.5.2...0.5.3) (2026-10-21)
 
 
