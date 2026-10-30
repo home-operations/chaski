@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.5.4](https://github.com/home-operations/chaski/compare/0.5.3...0.5.4) (2026-10-30)
+
+
+### Bug Fixes
+
+* **go:** update module github.com/kimmachinegun/automemlimit (v1.0.0 → v1.0.1) ([#208](https://github.com/home-operations/chaski/issues/208)) ([19583d2](https://github.com/home-operations/chaski/commit/19583d27917e611e48972bda457214abb6e31183))
+* **release:** generate the brew cask hook with install_steps ([#217](https://github.com/home-operations/chaski/issues/217)) ([346fd50](https://github.com/home-operations/chaski/commit/346fd50787a31351d8812cbc5f8be428a0d9b9dc))
+
+
+### Continuous Integration
+
+* mark issues and PRs stale after 180 days, close 14 days later ([feba41b](https://github.com/home-operations/chaski/commit/feba41bdbae63427a1466684368b36d76cc287cf))
+
+
+### Miscellaneous Chores
+
+* **container:** update image mirror.gcr.io/curlimages/curl (11e64e2 → 3fb7e13) ([#211](https://github.com/home-operations/chaski/issues/211)) ([8110315](https://github.com/home-operations/chaski/commit/8110315a8ee7801013ef8a446234af2feb2f3c1a))
+* **github-action:** update action docker/github-builder (v1.18.0 → v1.18.1) ([#207](https://github.com/home-operations/chaski/issues/207)) ([9b6a458](https://github.com/home-operations/chaski/commit/9b6a4580824d3188205692da235a58473eda7131))
+* **github-action:** update action docker/login-action (v4.6.0 → v4.7.0) ([#209](https://github.com/home-operations/chaski/issues/209)) ([5138d49](https://github.com/home-operations/chaski/commit/5138d49f8af417ea827f7a66a3e27107afbf94c4))
+* **github-action:** update action jdx/mise-action (v5.2.1 → v5.2.2) ([#206](https://github.com/home-operations/chaski/issues/206)) ([9609541](https://github.com/home-operations/chaski/commit/96095411d6ac7eaa4548602e4456135041d9f89b))
+* **github-action:** update action jdx/mise-action (v5.2.2 → v5.2.3) ([#210](https://github.com/home-operations/chaski/issues/210)) ([79b9909](https://github.com/home-operations/chaski/commit/79b99099ef17a02627a397fb5583c47752849b6a))
+* **github-action:** update action jdx/mise-action (v5.2.3 → v5.2.4) ([#215](https://github.com/home-operations/chaski/issues/215)) ([04431d5](https://github.com/home-operations/chaski/commit/04431d5efa2d63553e6c7d096c00480d9ee78014))
+* **github-action:** update github-actions ([#203](https://github.com/home-operations/chaski/issues/203)) ([c05db24](https://github.com/home-operations/chaski/commit/c05db24c561d8a6f4fd7e2e1b55135d24470c6ee))
+* **go:** update module cel.dev/cel-go (v0.32.0 → v0.33.0) ([#212](https://github.com/home-operations/chaski/issues/212)) ([e85595f](https://github.com/home-operations/chaski/commit/e85595f0141931ddd3d13a4582fbbc87e582d5ab))
+* **go:** update module github.com/unraid/apprise-go (v0.3.3 → v0.4.0) ([#214](https://github.com/home-operations/chaski/issues/214)) ([22e29f8](https://github.com/home-operations/chaski/commit/22e29f889d5c66379c5d330481a0f00ada4f1a1a))
+* **mise:** update tool aqua:dadav/helm-schema (0.23.5 → 0.24.0) ([#201](https://github.com/home-operations/chaski/issues/201)) ([cc9de05](https://github.com/home-operations/chaski/commit/cc9de055223b6b5edb3da3bb7e82eaddf12b654e))
+* **mise:** update tool cosign (3.1.3 → 3.1.4) ([#205](https://github.com/home-operations/chaski/issues/205)) ([a62d232](https://github.com/home-operations/chaski/commit/a62d2324f0c2d6f2ffc9e4622a8adc1268ba335a))
+* **mise:** update tool oxfmt (0.73.0 → 0.74.0) ([#204](https://github.com/home-operations/chaski/issues/204)) ([578ead2](https://github.com/home-operations/chaski/commit/578ead2a98444c76f1568ac6a6a901ae2f3d5eb5))
+* **mise:** update tool oxfmt (0.74.0 → 0.75.0) ([#216](https://github.com/home-operations/chaski/issues/216)) ([d2b3b39](https://github.com/home-operations/chaski/commit/d2b3b395b039b9b67b13af8d1f45f037774d5807))
+* **renovate:** extend the org preset from home-operations/.github ([bb5bd80](https://github.com/home-operations/chaski/commit/bb5bd80d7e59ae993bd8033be1b73deee8637934))
+
 ## [0.5.3](https://github.com/home-operations/chaski/compare/0.5.2...0.5.3) (2026-10-21)
 
 
