@@ -89,8 +89,10 @@ homebrew_casks:
     # already tried to execute the still-quarantined binary and been SIGKILLed.
     hooks:
       pre:
-        install: |
-          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/chaski"] if OS.mac?
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/chaski"]
+          end
 
 # Parallel per-GOOS release jobs (release.yaml): `release --split` legs +
 # one `continue --merge` job for checksums/signing/SBOMs/publish.
