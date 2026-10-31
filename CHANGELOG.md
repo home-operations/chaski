@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.5](https://github.com/home-operations/chaski/compare/0.5.4...0.5.5) (2026-10-31)
+
+
+### Miscellaneous Chores
+
+* **go:** update module cel.dev/cel-go (v0.33.0 → v0.33.1) ([#219](https://github.com/home-operations/chaski/issues/219)) ([185e265](https://github.com/home-operations/chaski/commit/185e26560d036118067a934f7df426751a5288cd))
+
 ## [0.5.4](https://github.com/home-operations/chaski/compare/0.5.3...0.5.4) (2026-10-30)
 
 
