@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.5](https://github.com/home-operations/chaski/compare/0.5.4...0.5.5) (2026-11-01)
+
+
+### Continuous Integration
+
+* **govulncheck:** run the scan on a schedule ([#223](https://github.com/home-operations/chaski/issues/223)) ([e8bac74](https://github.com/home-operations/chaski/commit/e8bac74bd2657f545174edef554283f4e6d7ddb2))
+
+
+### Miscellaneous Chores
+
+* **go:** update module cel.dev/cel-go (v0.33.0 → v0.33.1) ([#219](https://github.com/home-operations/chaski/issues/219)) ([185e265](https://github.com/home-operations/chaski/commit/185e26560d036118067a934f7df426751a5288cd))
+* **go:** update module cel.dev/cel-go (v0.33.1 → v0.33.2) ([#221](https://github.com/home-operations/chaski/issues/221)) ([1834c76](https://github.com/home-operations/chaski/commit/1834c76669475095a6947cfa5322622b8ef54227))
+* **go:** update module go.yaml.in/yaml/v4 (v4.0.0-rc.6 → v4.0.0-rc.7) ([#222](https://github.com/home-operations/chaski/issues/222)) ([d736b68](https://github.com/home-operations/chaski/commit/d736b680fa67e600cdb57a9c04de23bf53acc989))
+
 ## [0.5.4](https://github.com/home-operations/chaski/compare/0.5.3...0.5.4) (2026-10-30)
 
 
