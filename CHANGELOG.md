@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.5.5](https://github.com/home-operations/chaski/compare/0.5.4...0.5.5) (2026-11-07)
+
+
+### Continuous Integration
+
+* **govulncheck:** run the scan on a schedule ([#223](https://github.com/home-operations/chaski/issues/223)) ([e8bac74](https://github.com/home-operations/chaski/commit/e8bac74bd2657f545174edef554283f4e6d7ddb2))
+* replace the shared workflow-lint action with zizmor-action ([#228](https://github.com/home-operations/chaski/issues/228)) ([7cb57b4](https://github.com/home-operations/chaski/commit/7cb57b4771179ed702e45c9e44e213647bbc4dc7))
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action helm/kind-action (v1.15.1 → v1.15.2) ([#234](https://github.com/home-operations/chaski/issues/234)) ([d94b317](https://github.com/home-operations/chaski/commit/d94b3178fa3b4028f15464c3d3b90a18f5a79c1e))
+* **github-action:** update action jdx/mise-action (v5.2.4 → v5.2.5) ([#227](https://github.com/home-operations/chaski/issues/227)) ([f9c9fea](https://github.com/home-operations/chaski/commit/f9c9fea6117da35ab6763a5e3d965fa128ce6cc0))
+* **github-action:** update github-actions ([#231](https://github.com/home-operations/chaski/issues/231)) ([d16ef36](https://github.com/home-operations/chaski/commit/d16ef36e03209a8239ca745735a865d24727e1b3))
+* **go:** update module cel.dev/cel-go (v0.33.0 → v0.33.1) ([#219](https://github.com/home-operations/chaski/issues/219)) ([185e265](https://github.com/home-operations/chaski/commit/185e26560d036118067a934f7df426751a5288cd))
+* **go:** update module cel.dev/cel-go (v0.33.1 → v0.33.2) ([#221](https://github.com/home-operations/chaski/issues/221)) ([1834c76](https://github.com/home-operations/chaski/commit/1834c76669475095a6947cfa5322622b8ef54227))
+* **go:** update module github.com/caarlos0/env/v11 (v11.4.1 → v11.4.2) ([#226](https://github.com/home-operations/chaski/issues/226)) ([fe277ae](https://github.com/home-operations/chaski/commit/fe277ae238ce51e10f8003bf547a2811eb57f6c7))
+* **go:** update module github.com/emersion/go-smtp (v0.25.0 → v0.25.1) ([#230](https://github.com/home-operations/chaski/issues/230)) ([664768e](https://github.com/home-operations/chaski/commit/664768ee56599465015149e2fd1cd3c8cdee96ad))
+* **go:** update module github.com/spf13/pflag (v1.0.10 → v1.1.0) ([#233](https://github.com/home-operations/chaski/issues/233)) ([35b4695](https://github.com/home-operations/chaski/commit/35b4695130108eff351e77c0b50502a6ad75c372))
+* **go:** update module go.yaml.in/yaml/v4 (v4.0.0-rc.6 → v4.0.0-rc.7) ([#222](https://github.com/home-operations/chaski/issues/222)) ([d736b68](https://github.com/home-operations/chaski/commit/d736b680fa67e600cdb57a9c04de23bf53acc989))
+* **go:** update module go.yaml.in/yaml/v4 (v4.0.0-rc.7 → v4.0.0-rc.8) ([#224](https://github.com/home-operations/chaski/issues/224)) ([5790265](https://github.com/home-operations/chaski/commit/5790265f8c4836b15049a09bcf36451a2d75699f))
+* **go:** update module go.yaml.in/yaml/v4 (v4.0.0-rc.8 → v4.0.0-rc.9) ([#225](https://github.com/home-operations/chaski/issues/225)) ([a2c0448](https://github.com/home-operations/chaski/commit/a2c044875ebf048b8d739ae30138c26790e24d73))
+* **go:** update module go.yaml.in/yaml/v4 (v4.0.0-rc.9 → v4.0.0) ([#229](https://github.com/home-operations/chaski/issues/229)) ([05b29c3](https://github.com/home-operations/chaski/commit/05b29c30a0b736ae08b11eb9f97a9adf82f04881))
+* **mise:** update tool zizmor (1.31.1 → 1.32.0) ([#232](https://github.com/home-operations/chaski/issues/232)) ([9a1946e](https://github.com/home-operations/chaski/commit/9a1946eefde520e9b10962324733686077678928))
+
 ## [0.5.4](https://github.com/home-operations/chaski/compare/0.5.3...0.5.4) (2026-10-30)
 
 
