@@ -16,7 +16,7 @@ require (
 	github.com/spf13/pflag v1.1.0
 	github.com/unraid/apprise-go v0.4.0
 	go.yaml.in/yaml/v4 v4.0.0
-	golang.org/x/sync v0.24.0
+	golang.org/x/sync v0.25.0
 	google.golang.org/protobuf v1.36.12
 )
 
