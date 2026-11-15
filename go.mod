@@ -8,7 +8,7 @@ require (
 	github.com/caarlos0/env/v11 v11.4.2
 	github.com/emersion/go-message v0.18.2
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
-	github.com/emersion/go-smtp v0.25.1
+	github.com/emersion/go-smtp v0.26.0
 	github.com/go-sprout/sprout v1.1.2
 	github.com/invopop/jsonschema v0.14.0
 	github.com/prometheus/client_golang v1.25.0
