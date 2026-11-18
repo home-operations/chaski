@@ -3,7 +3,7 @@ module github.com/home-operations/chaski
 go 1.27.0
 
 require (
-	cel.dev/cel-go v0.33.2
+	cel.dev/cel-go v0.33.4
 	github.com/KimMachineGun/automemlimit v1.0.2
 	github.com/caarlos0/env/v11 v11.4.2
 	github.com/emersion/go-message v0.18.2
