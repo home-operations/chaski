@@ -2,6 +2,7 @@ package sink
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -92,6 +93,29 @@ func TestMergeQueryTelegramAcceptedByApprise(t *testing.T) {
 	full := mergeQuery("tgram://123456789:AAEfake/104243855", map[string]string{"format": "html"})
 	if err := apprise.New().Add(full); err != nil {
 		t.Fatalf("apprise rejected merged url: %v", err)
+	}
+}
+
+// TestMergeQueryParamDecodedByApprise pins the seam with apprise-go's query
+// decoding: a param value with spaces and a literal '+' (e.g. a Pushover
+// url_title) must reach the notifier unchanged.
+func TestMergeQueryParamDecodedByApprise(t *testing.T) {
+	var got map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Errorf("decode body: %v", err)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	want := "View Series + more"
+	target := "json://" + strings.TrimPrefix(srv.URL, "http://") + "/"
+	if err := DefaultNotifier().Send(context.Background(), target, "b", "t", map[string]string{":note": want}); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+	if got["note"] != want {
+		t.Errorf("note = %q, want %q", got["note"], want)
 	}
 }
 
