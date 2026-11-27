@@ -67,6 +67,8 @@ func redactURLs(text string, urls ...string) string {
 // never parsed: apprise schemes carry authorities net/url rejects (a tgram://
 // bot token's colon reads as an invalid port), and apprise-go's own parser
 // resolves a repeated key last-wins, so appended params override existing keys.
+// Spaces encode as %20 because apprise-go, like Python Apprise, never decodes a
+// '+' in a query value; Encode already escapes a literal '+' as %2B.
 func mergeQuery(rawURL string, params map[string]string) string {
 	if len(params) == 0 {
 		return rawURL
@@ -79,7 +81,7 @@ func mergeQuery(rawURL string, params map[string]string) string {
 	if strings.Contains(rawURL, "?") {
 		sep = "&"
 	}
-	return rawURL + sep + q.Encode()
+	return rawURL + sep + strings.ReplaceAll(q.Encode(), "+", "%20")
 }
 
 // appriseSink relays to an apprise target through the Notifier seam.
